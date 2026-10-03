@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AlertCircle, ExternalLink, Loader2, Receipt } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button';
 import expenseService from '@/services/expenseService';
+import { useAuth } from '@/hooks/useAuth';
 
 const statusStyles = {
   submitted: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
@@ -12,6 +13,7 @@ const statusStyles = {
 };
 
 export default function MyExpenses() {
+  const { canSubmitExpenses } = useAuth();
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -41,9 +43,15 @@ export default function MyExpenses() {
           <h1 className="text-3xl md:text-4xl font-extrabold mt-1">My Expense Claims</h1>
           <p className="text-sm text-muted-foreground mt-1">Track review and reimbursement status for your submitted claims.</p>
         </div>
-        <Link to="/expenses/submit">
-          <Button className="rounded-full">Submit an Expense</Button>
-        </Link>
+        {canSubmitExpenses ? (
+          <Link to="/expenses/submit" className={buttonVariants({ className: 'rounded-full' })}>
+            Submit an Expense
+          </Link>
+        ) : (
+          <Link to="/volunteering" className="text-sm font-semibold text-primary hover:underline">
+            View assigned events
+          </Link>
+        )}
       </div>
 
       {loading ? (
@@ -74,6 +82,7 @@ export default function MyExpenses() {
                   <p className="mt-3 whitespace-pre-line text-sm font-medium">{expense.description}</p>
                   <p className="mt-2 text-xs text-muted-foreground">
                     {expense.category} · {expense.createdAt ? new Date(expense.createdAt).toLocaleDateString() : ''}
+                    {expense.event?.title ? ` · Event: ${expense.event.title}` : ''}
                     {expense.linkedProject?.title ? ` · ${expense.linkedProject.title}` : ''}
                   </p>
                 </div>

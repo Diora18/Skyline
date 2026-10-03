@@ -50,26 +50,18 @@ export function PerksSection() {
         />
 
         <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {perks.map((perk, i) => (
+          {perks.map((perk) => (
             <div
               key={perk.title}
-              className={
-                i === 0
-                  ? 'flex flex-col gap-4 rounded-3xl bg-primary p-6 text-primary-foreground md:p-8'
-                  : 'flex flex-col gap-4 rounded-3xl border border-secondary-foreground/15 bg-secondary-foreground/5 p-6 md:p-8'
-              }
+              className="group flex flex-col gap-4 rounded-3xl border border-secondary-foreground/15 bg-secondary-foreground/5 p-6 text-secondary-foreground transition-colors duration-200 hover:border-primary hover:bg-primary hover:text-primary-foreground focus-within:border-primary focus-within:bg-primary focus-within:text-primary-foreground md:p-8"
             >
               <span
-                className={
-                  i === 0
-                    ? 'flex size-12 items-center justify-center rounded-2xl bg-primary-foreground text-primary'
-                    : 'flex size-12 items-center justify-center rounded-2xl bg-accent text-accent-foreground'
-                }
+                className="flex size-12 items-center justify-center rounded-2xl bg-accent text-accent-foreground transition-colors duration-200 group-hover:bg-primary-foreground group-hover:text-primary group-focus-within:bg-primary-foreground group-focus-within:text-primary"
               >
                 <perk.icon className="size-6" aria-hidden="true" />
               </span>
               <h3 className="text-2xl font-bold">{perk.title}</h3>
-              <p className={i === 0 ? 'text-primary-foreground/85' : 'text-secondary-foreground/70'}>
+              <p className="text-secondary-foreground/70 transition-colors duration-200 group-hover:text-primary-foreground/85 group-focus-within:text-primary-foreground/85">
                 {perk.body}
               </p>
             </div>

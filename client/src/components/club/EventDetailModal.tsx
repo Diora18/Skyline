@@ -1,9 +1,11 @@
-import { useState, useContext } from 'react';
+import { useState, useContext, useEffect } from 'react';
 import { AuthContext } from '@/context/AuthContext';
 import ticketService from '@/services/ticketService';
-import { Calendar, Clock, MapPin, Ticket, CheckCircle2, Loader2, AlertCircle, X, ShieldCheck } from 'lucide-react';
+import { Calendar, Clock, MapPin, Ticket, CheckCircle2, Loader2, AlertCircle, X, ShieldCheck, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
+import volunteerService from '@/services/volunteerService';
+import { AlumniSocialLinks } from './alumni-social-links';
 
 export function EventDetailModal({ event, onClose, onTicketPurchased }: any) {
   const { user, token, isMember } = useContext(AuthContext);
@@ -11,6 +13,37 @@ export function EventDetailModal({ event, onClose, onTicketPurchased }: any) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [purchasedTicket, setPurchasedTicket] = useState<any>(null);
+  const [volunteerApplication, setVolunteerApplication] = useState<any | null>(null);
+  const [volunteerLoading, setVolunteerLoading] = useState(false);
+  const [volunteerError, setVolunteerError] = useState('');
+  const [applying, setApplying] = useState(false);
+  const [currentTime] = useState(() => Date.now());
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadApplication = async () => {
+      if (!token || !user?._id || !event?._id) {
+        setVolunteerApplication(null);
+        setVolunteerLoading(false);
+        return;
+      }
+      setVolunteerLoading(true);
+      setVolunteerError('');
+      try {
+        const response = await volunteerService.getMyApplications();
+        const application = (response.data?.applications || []).find(
+          (item: any) => String(item.event?._id || item.event) === String(event._id)
+        );
+        if (!cancelled) setVolunteerApplication(application || null);
+      } catch (loadError: any) {
+        if (!cancelled) setVolunteerError(loadError.message || 'Unable to load this event’s volunteer application.');
+      } finally {
+        if (!cancelled) setVolunteerLoading(false);
+      }
+    };
+    loadApplication();
+    return () => { cancelled = true; };
+  }, [event?._id, token, user?._id]);
 
   if (!event) return null;
 
@@ -28,6 +61,8 @@ export function EventDetailModal({ event, onClose, onTicketPurchased }: any) {
 
   const price = isMember ? event.memberPrice : event.nonMemberPrice;
   const isSoldOut = event.capacity !== null && event.ticketsSold >= event.capacity;
+  const canApplyToVolunteer = event.status === 'published' && startDate.getTime() > currentTime;
+  const isAlumniEvent = /alumni/i.test(event.title || '');
 
   const handlePurchase = async () => {
     if (!token || !user) {
@@ -47,6 +82,46 @@ export function EventDetailModal({ event, onClose, onTicketPurchased }: any) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleVolunteerApplication = async () => {
+    if (!token || !user) {
+      navigate('/login');
+      return;
+    }
+
+    setApplying(true);
+    setVolunteerError('');
+    try {
+      const response = await volunteerService.applyForEvent(event._id);
+      setVolunteerApplication(response.data.application);
+    } catch (applyError: any) {
+      if (applyError.status === 409) {
+        try {
+          const response = await volunteerService.getMyApplications();
+          const existing = (response.data?.applications || []).find(
+            (item: any) => String(item.event?._id || item.event) === String(event._id)
+          );
+          if (existing) {
+            setVolunteerApplication(existing);
+            return;
+          }
+        } catch (refreshError: any) {
+          setVolunteerError(refreshError.message || 'Unable to refresh your application status.');
+          return;
+        }
+      }
+      setVolunteerError(applyError.message || 'Unable to apply to volunteer for this event.');
+    } finally {
+      setApplying(false);
+    }
+  };
+
+  const volunteerStatusText: Record<string, string> = {
+    pending: 'Application Pending',
+    approved: 'Volunteer — Approved',
+    rejected: 'Application Rejected',
+    completed: 'Completed',
   };
 
   return (
@@ -116,6 +191,16 @@ export function EventDetailModal({ event, onClose, onTicketPurchased }: any) {
               {event.description || 'Join us for this exciting Skyline SSA event! Network, learn, and collaborate with peers.'}
             </p>
 
+            {isAlumniEvent && (
+              <div className="flex items-center justify-between gap-3 rounded-2xl border border-primary/15 bg-primary/5 p-4">
+                <div>
+                  <p className="text-sm font-semibold">Stay connected with Skyline alumni</p>
+                  <p className="mt-1 text-xs text-muted-foreground">Search public profiles and alumni discussions.</p>
+                </div>
+                <AlumniSocialLinks />
+              </div>
+            )}
+
             <div className="space-y-2 text-sm">
               <div className="flex items-center gap-2.5 text-muted-foreground">
                 <Calendar className="h-4 w-4 text-primary" />
@@ -131,19 +216,69 @@ export function EventDetailModal({ event, onClose, onTicketPurchased }: any) {
               </div>
             </div>
 
+            <div className="rounded-xl border border-border bg-muted/50 p-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="font-semibold">Volunteer for this event</p>
+                  {volunteerApplication ? (
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {volunteerStatusText[volunteerApplication.status] || volunteerApplication.status}
+                      {volunteerApplication.responsibility ? ` · ${volunteerApplication.responsibility}` : ''}
+                    </p>
+                  ) : (
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Apply to this event separately from your other event applications.
+                    </p>
+                  )}
+                </div>
+                {volunteerLoading ? (
+                  <Loader2 className="size-5 animate-spin text-primary" aria-label="Checking volunteer application" />
+                ) : volunteerApplication?.status === 'pending' ? (
+                  <Button type="button" variant="outline" disabled className="rounded-full">Application Pending</Button>
+                ) : volunteerApplication?.status === 'approved' ? (
+                  <Button type="button" variant="outline" disabled className="rounded-full">Volunteer — Approved</Button>
+                ) : volunteerApplication?.status === 'completed' ? (
+                  <Button type="button" variant="outline" disabled className="rounded-full">Completed</Button>
+                ) : volunteerApplication?.status === 'rejected' ? (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-sm font-semibold text-destructive">Application Rejected</span>
+                    {canApplyToVolunteer && (
+                      <Button type="button" onClick={handleVolunteerApplication} disabled={applying} className="rounded-full">
+                        Apply again
+                      </Button>
+                    )}
+                  </div>
+                ) : (
+                  <Button
+                    type="button"
+                    onClick={handleVolunteerApplication}
+                    disabled={!canApplyToVolunteer || applying}
+                    className="rounded-full"
+                  >
+                    {applying ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Users className="mr-2 size-4" />}
+                    {applying ? 'Submitting...' : !token ? 'Sign in to apply' : 'Apply as Volunteer'}
+                  </Button>
+                )}
+              </div>
+              {volunteerError && (
+                <p className="mt-3 text-sm text-destructive" role="alert">{volunteerError}</p>
+              )}
+              {!canApplyToVolunteer && !volunteerApplication && !volunteerLoading && (
+                <p className="mt-2 text-xs text-muted-foreground">Applications are available for upcoming published events.</p>
+              )}
+            </div>
+
             <div className="rounded-2xl bg-muted/60 p-4 flex items-center justify-between">
               <div>
-                <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider block">Price</span>
-                <span className="text-lg font-bold">
-                  {price === 0 ? 'FREE' : `$${price}`}
+                <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider block">Ticket prices</span>
+                <span className={`mt-1 block text-sm font-bold ${isMember ? 'text-emerald-600' : ''}`}>
+                  Member: {event.memberPrice === 0 ? 'Free' : `$${event.memberPrice}`}
+                  {isMember ? ' · Your price' : ''}
                 </span>
-                {isMember ? (
-                  <span className="text-xs text-emerald-500 font-semibold block">Member price applied</span>
-                ) : (
-                  <span className="text-xs text-muted-foreground block">
-                    (Member price: {event.memberPrice === 0 ? 'FREE' : `$${event.memberPrice}`})
-                  </span>
-                )}
+                <span className={`block text-sm font-bold ${!isMember ? 'text-emerald-600' : ''}`}>
+                  Non-member: {event.nonMemberPrice === 0 ? 'Free' : `$${event.nonMemberPrice}`}
+                  {!isMember ? ' · Your price' : ''}
+                </span>
               </div>
               <div className="text-right">
                 <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider block">Status</span>

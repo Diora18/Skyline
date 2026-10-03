@@ -1,20 +1,22 @@
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect, useContext, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import projectService from '@/services/projectService';
 import taskService from '@/services/taskService';
 import memberService from '@/services/memberService';
+import volunteerService from '@/services/volunteerService';
 import { AuthContext } from '@/context/AuthContext';
-import { FolderKanban, Plus, ChevronRight, ChevronLeft, Trash2, CheckCircle2, Circle, Clock, AlertCircle, Loader2, User, ArrowLeft, PackageCheck } from 'lucide-react';
+import { FolderKanban, Plus, ChevronRight, ChevronLeft, Trash2, CheckCircle2, Circle, Clock, AlertCircle, Loader2, User, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export default function ProjectKanban() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user, isOfficer, isVolunteer } = useContext(AuthContext);
+  const { user, isOfficer, isVolunteer, managedEventIds } = useContext(AuthContext);
 
   const [project, setProject] = useState(null);
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [accessDenied, setAccessDenied] = useState(false);
 
   // New Task Modal state
   const [showTaskModal, setShowTaskModal] = useState(false);
@@ -27,33 +29,71 @@ export default function ProjectKanban() {
   const [supplies, setSupplies] = useState([]);
   const [creatingTask, setCreatingTask] = useState(false);
 
-  const fetchProjectAndTasks = async () => {
+  const linkedEventId = String(project?.linkedEvent?._id || project?.linkedEvent || '');
+  const canManageProjectTasks = isOfficer || managedEventIds.includes(linkedEventId);
+
+  const fetchProjectAndTasks = useCallback(async () => {
     setLoading(true);
     try {
       const res = await projectService.getProjectById(id);
-      setProject(res.data.project);
-      setTasks(res.data.project?.tasks || []);
+      const loadedProject = res.data.project;
+      const projectTasks = loadedProject?.tasks || [];
+      const eventId = String(loadedProject?.linkedEvent?._id || loadedProject?.linkedEvent || '');
+      const managesLinkedEvent = managedEventIds.includes(eventId);
+      const visibleTasks = isOfficer || managesLinkedEvent
+        ? projectTasks
+        : projectTasks.filter(
+          (task) => String(task.assignee?._id || task.assignee || '') === String(user?._id || '')
+        );
+
+      setProject(loadedProject);
+      setTasks(visibleTasks);
+      setAccessDenied(!isOfficer && !managesLinkedEvent && visibleTasks.length === 0);
     } catch (err) {
       console.error('Failed to load project details', err);
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, isOfficer, managedEventIds, user?._id]);
 
   useEffect(() => {
     if (id) fetchProjectAndTasks();
-  }, [id]);
+  }, [id, fetchProjectAndTasks]);
 
   useEffect(() => {
-    if (!isOfficer) return;
-    memberService.getMembers({ limit: 100 })
-      .then((response) => {
-        setVolunteers((response.data.members || []).filter((member) => member.role === 'volunteer'));
-      })
-      .catch((err) => {
-        console.error('Failed to load volunteer assignments', err);
-      });
-  }, [isOfficer]);
+    if (!project) return;
+    let cancelled = false;
+
+    const loadVolunteers = async () => {
+      try {
+        if (isOfficer) {
+          const response = await memberService.getMembers({ limit: 100 });
+          if (!cancelled) {
+            setVolunteers((response.data.members || []).filter((member) => member.role === 'volunteer'));
+          }
+          return;
+        }
+
+        if (!linkedEventId || !canManageProjectTasks) {
+          if (!cancelled) setVolunteers([]);
+          return;
+        }
+
+        const response = await volunteerService.getEventApplications(linkedEventId);
+        const applicants = (response.data.applications || [])
+          .map((application) => application.user)
+          .filter((member) => member?.role === 'volunteer');
+        const eligibleVolunteers = [...new Map(applicants.map((member) => [member._id, member])).values()];
+        if (!cancelled) setVolunteers(eligibleVolunteers);
+      } catch (err) {
+        console.error('Failed to load eligible volunteer assignments', err);
+        if (!cancelled) setVolunteers([]);
+      }
+    };
+
+    loadVolunteers();
+    return () => { cancelled = true; };
+  }, [canManageProjectTasks, isOfficer, linkedEventId, project]);
 
   const handleUpdateStatus = async (taskId, newStatus) => {
     try {
@@ -134,6 +174,18 @@ export default function ProjectKanban() {
     );
   }
 
+  if (accessDenied) {
+    return (
+      <main className="min-h-screen py-24 px-4 text-center space-y-4">
+        <h2 className="text-2xl font-bold">No tasks assigned to you here</h2>
+        <p className="text-sm text-muted-foreground">Project boards only show work assigned to your account.</p>
+        <Button onClick={() => navigate('/projects')} className="rounded-full">
+          Back to My Projects
+        </Button>
+      </main>
+    );
+  }
+
   if (!project) {
     return (
       <main className="min-h-screen py-24 text-center space-y-4">
@@ -167,10 +219,10 @@ export default function ProjectKanban() {
           <p className="text-muted-foreground text-sm max-w-2xl mt-1">{project.description}</p>
         </div>
 
-        {isOfficer && (
+        {canManageProjectTasks && (
           <Button onClick={() => setShowTaskModal(true)} className="rounded-full shrink-0">
             <Plus className="h-4 w-4 mr-2" />
-            Add Kanban Task
+            {isOfficer ? 'Add Kanban Task' : 'Assign Volunteer Task'}
           </Button>
         )}
       </div>
@@ -284,17 +336,23 @@ export default function ProjectKanban() {
               </div>
 
               <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">Assign Volunteer</label>
+                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">Assign to Volunteer</label>
                 <select
                   value={assignee}
                   onChange={(e) => setAssignee(e.target.value)}
+                  required={!isOfficer}
                   className="w-full rounded-2xl border border-input bg-background px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 >
-                  <option value="">Unassigned</option>
+                  {isOfficer && <option value="">Unassigned</option>}
                   {volunteers.map((volunteer) => (
                     <option key={volunteer._id} value={volunteer._id}>{volunteer.name}</option>
                   ))}
                 </select>
+                {!isOfficer && volunteers.length === 0 && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    No users with the Volunteer role have applied to this event yet.
+                  </p>
+                )}
               </div>
 
               {/* Supplies checklist builder */}
@@ -342,7 +400,7 @@ export default function ProjectKanban() {
 
 function KanbanColumn({ title, count, color, children }) {
   return (
-    <div className="flex flex-col rounded-3xl border border-border bg-card/60 p-4 shadow-sm min-h-[500px]">
+    <div className="flex flex-col rounded-3xl border border-border bg-card/60 p-4 shadow-sm min-h-125">
       <div className="flex items-center justify-between border-b border-border pb-3 mb-4">
         <div className="flex items-center gap-2">
           <h2 className="font-extrabold text-base">{title}</h2>
@@ -386,7 +444,7 @@ function TaskCard({ task, onMoveLeft, onMoveRight, onDelete, onMarkDone, canMark
       <div className="flex items-center justify-between pt-2 border-t border-border">
         <div className="flex items-center gap-1 text-xs text-muted-foreground">
           <User className="h-3.5 w-3.5 text-primary" />
-          <span className="truncate max-w-[100px]">{task.assignee?.name || 'Unassigned'}</span>
+          <span className="truncate max-w-25">{task.assignee?.name || 'Unassigned'}</span>
         </div>
 
         <div className="flex items-center gap-1">

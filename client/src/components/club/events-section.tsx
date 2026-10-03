@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useContext } from 'react'
-import { Check, Clock, MapPin, Ticket, Loader2, Plus, Pencil, Trash2, Users, X } from 'lucide-react'
+import { Check, Clock, MapPin, Ticket, Loader2, Plus, Pencil, Trash2, Users, X, UserCheck, UserX, BadgeCheck, CalendarDays, Search, ArrowUpRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { SectionHeading } from './section-heading'
 import { cn } from '@/lib/utils'
@@ -10,6 +10,8 @@ import ticketService from '@/services/ticketService'
 import memberService from '@/services/memberService'
 import { AuthContext } from '@/context/AuthContext'
 import { EventDetailModal } from './EventDetailModal'
+import { AlumniSocialLinks } from './alumni-social-links'
+import volunteerService from '@/services/volunteerService'
 
 type Category = 'All' | 'gala' | 'fundraiser' | 'meeting' | 'workshop' | 'social'
 
@@ -41,6 +43,7 @@ const toLocalDateTime = (value: string) => {
 export function EventsSection() {
   const { user, token, isMember, isOfficer, isVolunteer, isTreasurer } = useContext(AuthContext)
   const [filter, setFilter] = useState<Category>('All')
+  const [search, setSearch] = useState('')
   const [eventsList, setEventsList] = useState<any[]>([])
   const [myTicketEventIds, setMyTicketEventIds] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
@@ -52,6 +55,11 @@ export function EventsSection() {
   const [members, setMembers] = useState<any[]>([])
   const [attendees, setAttendees] = useState<any[]>([])
   const [attendeeStats, setAttendeeStats] = useState<any | null>(null)
+  const [volunteerApplications, setVolunteerApplications] = useState<any[]>([])
+  const [volunteerApplicationsLoaded, setVolunteerApplicationsLoaded] = useState(false)
+  const [volunteerApplicationsLoading, setVolunteerApplicationsLoading] = useState(false)
+  const [volunteerActionId, setVolunteerActionId] = useState('')
+  const [currentTime] = useState(() => Date.now())
 
   const fetchEvents = async () => {
     setLoading(true)
@@ -236,13 +244,45 @@ export function EventsSection() {
     }
   }
 
-  const filtered = eventsList.filter((e) => {
-    if (filter === 'All') return true
-    return e.category?.toLowerCase() === filter.toLowerCase()
-  })
+  const handleLoadVolunteerApplications = async () => {
+    if (!managementEvent?._id) return
+    setVolunteerApplicationsLoading(true)
+    setManagementError('')
+    try {
+      const response = await volunteerService.getEventApplications(managementEvent._id)
+      setVolunteerApplications(response.data?.applications || [])
+      setVolunteerApplicationsLoaded(true)
+    } catch (err: any) {
+      setManagementError(err.message || 'Unable to load event volunteer applications.')
+    } finally {
+      setVolunteerApplicationsLoading(false)
+    }
+  }
 
-  const featured = filtered.find((e) => e.bannerImage) || filtered[0]
-  const rest = filtered.filter((e) => e._id !== featured?._id)
+  const handleVolunteerApplicationUpdate = async (applicationId: string, updates: any) => {
+    if (!managementEvent?._id) return
+    setVolunteerActionId(applicationId)
+    setManagementError('')
+    try {
+      const response = await volunteerService.updateApplication(managementEvent._id, applicationId, updates)
+      const updated = response.data.application
+      setVolunteerApplications((current) =>
+        current.map((application) => application._id === applicationId ? updated : application)
+      )
+    } catch (err: any) {
+      setManagementError(err.message || 'Unable to update volunteer application.')
+    } finally {
+      setVolunteerActionId('')
+    }
+  }
+
+  const filtered = eventsList.filter((e) => {
+    const matchesCategory = filter === 'All' || e.category?.toLowerCase() === filter.toLowerCase()
+    const query = search.trim().toLowerCase()
+    const matchesSearch = !query || [e.title, e.description, e.venue, e.category]
+      .some((value) => String(value || '').toLowerCase().includes(query))
+    return matchesCategory && matchesSearch
+  }).sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
 
   return (
     <section id="events" className="scroll-mt-16 py-20 md:py-28">
@@ -254,31 +294,43 @@ export function EventsSection() {
             description="From chill socials to all-night hackathons — RSVP in one tap and save your spot."
           />
           <div className="flex flex-col items-start gap-3 md:items-end">
-          {isOfficer && (
-            <Button onClick={() => openEventManager(null)} className="rounded-full">
-              <Plus className="mr-2 h-4 w-4" /> Create Event
-            </Button>
-          )}
-          <div role="group" aria-label="Filter events" className="flex flex-wrap gap-2">
-            {categories.map((c) => (
-              <button
-                key={c}
-                type="button"
-                aria-pressed={filter === c}
-                onClick={() => setFilter(c)}
-                className={cn(
-                  'rounded-full border px-4 py-2 text-sm font-semibold capitalize transition-colors',
-                  filter === c
-                    ? 'border-foreground bg-foreground text-background'
-                    : 'border-border bg-card hover:border-foreground',
-                )}
-              >
-                {c}
-              </button>
-            ))}
-          </div>
+            {isOfficer && (
+              <Button onClick={() => openEventManager(null)} className="rounded-full">
+                <Plus className="mr-2 h-4 w-4" /> Create Event
+              </Button>
+            )}
+            <div className="flex flex-wrap gap-2">
+              {categories.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  aria-pressed={filter === c}
+                  onClick={() => setFilter(c)}
+                  className={cn(
+                    'rounded-full border px-4 py-2 text-sm font-semibold capitalize transition-colors',
+                    filter === c
+                      ? 'border-foreground bg-foreground text-background'
+                      : 'border-border bg-card hover:border-foreground',
+                  )}
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
+
+        <label className="relative mt-8 block max-w-md">
+          <Search className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+          <input
+            type="search"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Search events, venues, categories..."
+            aria-label="Search events"
+            className="h-11 w-full rounded-full border border-input bg-card pl-11 pr-4 text-sm shadow-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+          />
+        </label>
 
         {loading ? (
           <div className="mt-12 flex justify-center py-16 text-muted-foreground">
@@ -291,130 +343,143 @@ export function EventsSection() {
           <div className="mt-12 rounded-3xl border border-dashed border-border p-12 text-center text-muted-foreground">
             <Ticket className="mx-auto h-10 w-10 text-muted-foreground/60 mb-3" />
             <h3 className="text-lg font-bold text-foreground">No events found</h3>
-            <p className="mt-1 text-sm">No {filter !== 'All' ? filter.toLowerCase() : ''} events are currently scheduled.</p>
+            <p className="mt-1 text-sm">
+              {search ? `No events match “${search}”.` : `No ${filter !== 'All' ? filter.toLowerCase() : ''} events are currently scheduled.`}
+            </p>
+            {search && (
+              <Button variant="outline" size="sm" className="mt-4 rounded-full" onClick={() => setSearch('')}>
+                Clear search
+              </Button>
+            )}
           </div>
         ) : (
-          <div className="mt-12 grid gap-6 lg:grid-cols-5">
-            {featured && (
-              <article
-                onClick={() => setSelectedEvent(featured)}
-                className="group relative flex min-h-[28rem] flex-col justify-end overflow-hidden rounded-3xl border-2 border-foreground lg:col-span-3 cursor-pointer"
-              >
-                <img
-                  src={featured.bannerImage || '/images/event-hackathon.png'}
-                  alt={featured.title}
-                  className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  onError={(e: any) => { e.target.src = 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&auto=format&fit=crop' }}
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent" />
-                <div className="relative flex flex-col gap-4 p-6 text-white md:p-8">
-                  <div className="flex flex-wrap gap-2">
-                    <span className="rounded-full bg-primary px-3 py-1 text-xs font-bold uppercase tracking-wider text-primary-foreground">
-                      Featured
-                    </span>
-                    <span className="rounded-full bg-accent px-3 py-1 text-xs font-bold uppercase tracking-wider text-accent-foreground">
-                      {featured.category}
-                    </span>
-                  </div>
-                  <h3 className="text-3xl font-extrabold md:text-4xl">{featured.title}</h3>
-                  <p className="max-w-md text-white/80 line-clamp-2 text-sm">
-                    {featured.description || 'Join us for this featured Skyline SSA event.'}
-                  </p>
-                  <EventMeta event={featured} invert />
-                  <div className="flex flex-wrap items-center gap-4 pt-2">
-                    <RsvpButton
-                      active={myTicketEventIds.has(featured._id)}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setSelectedEvent(featured)
-                      }}
-                    />
-                    <span className="text-sm text-white/80 font-medium">
-                      {featured.capacity !== null
-                        ? `${Math.max(0, featured.capacity - featured.ticketsSold)} spots left · `
-                        : ''}
-                      {isMember ? (featured.memberPrice === 0 ? 'Free' : `$${featured.memberPrice}`) : (featured.nonMemberPrice === 0 ? 'Free' : `$${featured.nonMemberPrice}`)}
-                    </span>
-                  </div>
-                  {(isOfficer || canManageEvent(featured)) && (
-                    <div className="flex gap-2 pt-2">
-                      <Button variant="secondary" size="sm" onClick={(e: any) => { e.stopPropagation(); openEventManager(featured) }}>
-                        <Pencil className="mr-1 h-3.5 w-3.5" /> Manage Event
-                      </Button>
-                      {isOfficer && (
-                        <Button variant="destructive" size="sm" onClick={(e: any) => { e.stopPropagation(); handleDeleteEvent(featured) }}>
-                          <Trash2 className="mr-1 h-3.5 w-3.5" /> Delete
-                        </Button>
+          <ul className="mt-8 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+            {filtered.map((event) => {
+              const startDate = new Date(event.startDate)
+              const isAlumniEvent = /alumni/i.test(event.title)
+              const spotsLeft = event.capacity == null ? null : Math.max(0, event.capacity - (event.ticketsSold || 0))
+
+              return (
+                <li key={event._id} className="min-w-0">
+                  <article
+                    onClick={() => setSelectedEvent(event)}
+                    className="group flex h-full cursor-pointer flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl"
+                  >
+                    <div className="relative aspect-[16/10] overflow-hidden bg-gradient-to-br from-primary/20 via-secondary/30 to-accent/30">
+                      {event.bannerImage ? (
+                        <img
+                          src={event.bannerImage}
+                          alt=""
+                          loading="lazy"
+                          className="absolute inset-0 size-full object-cover transition-transform duration-500 group-hover:scale-105"
+                          onError={(imageEvent: any) => { imageEvent.currentTarget.style.display = 'none' }}
+                        />
+                      ) : (
+                        <div className="absolute inset-0 flex items-center justify-center text-primary/70">
+                          <div className="flex size-20 items-center justify-center rounded-3xl border border-white/50 bg-white/30 shadow-sm backdrop-blur-sm">
+                            {isAlumniEvent ? <Users className="size-10" /> : <CalendarDays className="size-10" />}
+                          </div>
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-transparent to-black/10" />
+                      <div className="absolute left-4 top-4 flex flex-wrap gap-2">
+                        <span className="rounded-full bg-background/90 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-foreground shadow-sm backdrop-blur">
+                          {isAlumniEvent ? 'Alumni connection' : event.category}
+                        </span>
+                        {isOfficer && event.status !== 'published' && (
+                          <span className="rounded-full bg-amber-400/90 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-black">
+                            {event.status}
+                          </span>
+                        )}
+                      </div>
+                      <div className="absolute bottom-4 left-4 flex size-14 flex-col items-center justify-center rounded-2xl bg-background/95 text-foreground shadow-lg backdrop-blur">
+                        <span className="text-[10px] font-bold uppercase leading-none text-primary">
+                          {startDate.toLocaleDateString('en-US', { month: 'short' })}
+                        </span>
+                        <span className="mt-1 text-xl font-extrabold leading-none">{startDate.getDate()}</span>
+                      </div>
+                      {myTicketEventIds.has(event._id) && (
+                        <span className="absolute bottom-5 right-4 inline-flex items-center gap-1.5 rounded-full bg-emerald-500 px-3 py-1.5 text-xs font-bold text-white shadow">
+                          <Check className="size-3.5" /> Going
+                        </span>
                       )}
                     </div>
-                  )}
-                </div>
-              </article>
-            )}
 
-            <ul className="flex flex-col gap-4 lg:col-span-2">
-              {rest.map((event) => {
-                const startDate = new Date(event.startDate)
-                const month = startDate.toLocaleDateString('en-US', { month: 'short' })
-                const day = startDate.getDate()
-
-                return (
-                  <li key={event._id}>
-                    <article
-                      onClick={() => setSelectedEvent(event)}
-                      className="flex gap-4 rounded-2xl border border-border bg-card p-4 transition-all hover:border-foreground hover:shadow-md cursor-pointer"
-                    >
-                      <div className="flex w-16 shrink-0 flex-col items-center justify-center rounded-xl bg-muted py-2">
-                        <span className="text-xs font-bold uppercase text-primary">{month}</span>
-                        <span className="font-display text-2xl font-extrabold">{day}</span>
-                      </div>
-                      <div className="flex min-w-0 flex-1 flex-col gap-2">
-                        <div className="flex items-start justify-between gap-2">
-                          <h3 className="text-lg font-bold leading-snug truncate">{event.title}</h3>
-                          <span className="shrink-0 rounded-full bg-accent/20 text-accent-foreground px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider">
-                            {event.category}
-                          </span>
-                        </div>
+                    <div className="flex flex-1 flex-col p-5">
+                      <h3 className="text-xl font-bold leading-snug">
+                        <button
+                          type="button"
+                          onClick={(clickEvent) => {
+                            clickEvent.stopPropagation()
+                            setSelectedEvent(event)
+                          }}
+                          className="flex w-full items-start justify-between gap-2 text-left transition-colors hover:text-primary focus-visible:rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                        >
+                          <span>{event.title}</span>
+                          <ArrowUpRight className="mt-1 size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-primary" aria-hidden="true" />
+                        </button>
+                      </h3>
+                      <p className="mt-2 line-clamp-2 min-h-10 text-sm leading-relaxed text-muted-foreground">
+                        {event.description || 'Join the Skyline community for this upcoming event.'}
+                      </p>
+                      <div className="mt-4">
                         <EventMeta event={event} />
-                        <div className="flex items-center justify-between gap-2 mt-1">
-                          <span className="text-xs text-muted-foreground font-medium">
-                            {event.capacity !== null ? (
-                              <span className="font-semibold text-primary">
-                                {Math.max(0, event.capacity - event.ticketsSold)} spots left
-                              </span>
-                            ) : (
-                              'Open entry'
-                            )}{' '}
-                            · {isMember ? (event.memberPrice === 0 ? 'Free' : `$${event.memberPrice}`) : (event.nonMemberPrice === 0 ? 'Free' : `$${event.nonMemberPrice}`)}
-                          </span>
+                      </div>
+
+                      {isAlumniEvent && (
+                        <div className="mt-4 flex items-center justify-between gap-3 rounded-2xl border border-primary/15 bg-primary/5 px-3 py-2.5">
+                          <div>
+                            <p className="text-xs font-semibold text-primary">Alumni spotlight</p>
+                            <p className="mt-0.5 text-xs text-muted-foreground">Connect with Skyline graduates and find their community.</p>
+                          </div>
+                          <AlumniSocialLinks />
+                        </div>
+                      )}
+
+                      <div className="mt-auto pt-5">
+                        <div className="flex items-center justify-between gap-3 border-t border-border pt-4">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-bold">
+                              Member: {event.memberPrice === 0 ? 'Free' : `$${event.memberPrice}`}
+                            </p>
+                            <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                              Non-member: {event.nonMemberPrice === 0 ? 'Free' : `$${event.nonMemberPrice}`}
+                              {' · '}
+                              {isMember ? 'Member price applied' : 'Non-member price applies'}
+                            </p>
+                            <p className="mt-0.5 text-xs text-muted-foreground">
+                              {spotsLeft == null ? 'Open entry' : `${spotsLeft} spots left`}
+                            </p>
+                          </div>
                           <RsvpButton
                             small
                             active={myTicketEventIds.has(event._id)}
-                            onClick={(e) => {
-                              e.stopPropagation()
+                            onClick={(clickEvent) => {
+                              clickEvent.stopPropagation()
                               setSelectedEvent(event)
                             }}
                           />
                         </div>
+
                         {(isOfficer || canManageEvent(event)) && (
-                          <div className="flex gap-2 pt-2">
-                            <Button variant="outline" size="sm" onClick={(e: any) => { e.stopPropagation(); openEventManager(event) }}>
-                              <Pencil className="mr-1 h-3.5 w-3.5" /> Manage
+                          <div className="mt-3 flex gap-2" onClick={(clickEvent) => clickEvent.stopPropagation()}>
+                            <Button variant="outline" size="sm" className="rounded-full" onClick={() => openEventManager(event)}>
+                              <Pencil className="mr-1 h-3.5 w-3.5" /> Manage event
                             </Button>
                             {isOfficer && (
-                              <Button variant="destructive" size="sm" onClick={(e: any) => { e.stopPropagation(); handleDeleteEvent(event) }}>
+                              <Button variant="destructive" size="sm" className="rounded-full" onClick={() => handleDeleteEvent(event)}>
                                 <Trash2 className="mr-1 h-3.5 w-3.5" /> Delete
                               </Button>
                             )}
                           </div>
                         )}
                       </div>
-                    </article>
-                  </li>
-                )
-              })}
-            </ul>
-          </div>
+                    </div>
+                  </article>
+                </li>
+              )
+            })}
+          </ul>
         )}
       </div>
 
@@ -513,6 +578,112 @@ export function EventsSection() {
                         ))}
                       </select>
                     </div>
+                  </div>
+                )}
+
+                {canManageEvent(managementEvent) && (
+                  <div>
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <h3 className="flex items-center gap-2 font-bold"><Users className="h-4 w-4" /> Event Volunteers</h3>
+                        <p className="mt-1 text-xs text-muted-foreground">Review applications for this event only.</p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleLoadVolunteerApplications}
+                        disabled={volunteerApplicationsLoading}
+                      >
+                        {volunteerApplicationsLoading && <Loader2 className="mr-2 size-4 animate-spin" />}
+                        {volunteerApplicationsLoading ? 'Loading...' : 'Load applications'}
+                      </Button>
+                    </div>
+                    {volunteerApplications.length > 0 ? (
+                      <div className="mt-3 max-h-80 space-y-3 overflow-auto">
+                        {volunteerApplications.map((application) => (
+                          <article key={application._id} className="rounded-xl border border-border p-3">
+                            <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+                              <div className="min-w-0">
+                                <p className="font-semibold">{application.user?.name || 'Unknown member'}</p>
+                                <p className="break-all text-xs text-muted-foreground">
+                                  {[application.user?.email, application.user?.studentId, application.user?.role]
+                                    .filter(Boolean).join(' · ')}
+                                </p>
+                                <span className="mt-2 inline-block rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold capitalize text-primary">
+                                  {application.status}
+                                </span>
+                              </div>
+                              <div className="flex flex-wrap gap-2">
+                                {application.status === 'pending' && (
+                                  <>
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      disabled={volunteerActionId === application._id}
+                                      onClick={() => handleVolunteerApplicationUpdate(application._id, { status: 'approved' })}
+                                    >
+                                      <UserCheck className="mr-1.5 size-4" /> Approve
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant="destructive"
+                                      disabled={volunteerActionId === application._id}
+                                      onClick={() => handleVolunteerApplicationUpdate(application._id, { status: 'rejected' })}
+                                    >
+                                      <UserX className="mr-1.5 size-4" /> Reject
+                                    </Button>
+                                  </>
+                                )}
+                                {application.status === 'approved' && new Date(managementEvent.endDate).getTime() <= currentTime && (
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    disabled={volunteerActionId === application._id}
+                                    onClick={() => handleVolunteerApplicationUpdate(application._id, { status: 'completed' })}
+                                  >
+                                    <BadgeCheck className="mr-1.5 size-4" /> Mark completed
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                            {(application.status === 'approved' || application.status === 'completed') && (
+                              <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                                <input
+                                  aria-label={`Responsibility for ${application.user?.name || 'volunteer'}`}
+                                  maxLength={120}
+                                  value={application.responsibility || ''}
+                                  onChange={(e) => setVolunteerApplications((current) =>
+                                    current.map((item) => item._id === application._id
+                                      ? { ...item, responsibility: e.target.value }
+                                      : item)
+                                  )}
+                                  placeholder="Responsibility (optional)"
+                                  className="min-w-0 flex-1 rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                                />
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  disabled={volunteerActionId === application._id}
+                                  onClick={() => handleVolunteerApplicationUpdate(application._id, {
+                                    responsibility: application.responsibility || '',
+                                  })}
+                                >
+                                  Save responsibility
+                                </Button>
+                              </div>
+                            )}
+                          </article>
+                        ))}
+                      </div>
+                    ) : volunteerApplicationsLoaded && !volunteerApplicationsLoading && (
+                      <p className="mt-3 rounded-xl border border-dashed border-border p-3 text-sm text-muted-foreground">
+                        No applications for this event yet.
+                      </p>
+                    )}
                   </div>
                 )}
 

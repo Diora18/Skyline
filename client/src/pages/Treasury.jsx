@@ -77,11 +77,14 @@ export default function Treasury() {
               .map((project) => String(project._id))
           );
           const expensesTotal = expenses
-            .filter((expense) =>
-              expense.status === 'reimbursed' &&
-              expense.linkedProject &&
-              projectIds.has(String(expense.linkedProject._id || expense.linkedProject))
-            )
+            .filter((expense) => {
+              if (expense.status !== 'reimbursed') return false;
+              if (expense.event) {
+                return String(expense.event._id || expense.event) === String(event._id);
+              }
+              return expense.linkedProject &&
+                projectIds.has(String(expense.linkedProject._id || expense.linkedProject));
+            })
             .reduce((total, expense) => total + (Number(expense.amount) || 0), 0);
 
           return { ...event, income, expenses: expensesTotal };

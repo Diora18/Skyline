@@ -81,7 +81,7 @@ export const AuthProvider = ({ children }) => {
         return;
       }
 
-      const response = await fetch('/api/events', {
+      const response = await fetch('/api/events?limit=100', {
         headers: { Authorization: `Bearer ${token}` },
       });
       const result = await readApiResponse(response);
@@ -150,6 +150,14 @@ export const AuthProvider = ({ children }) => {
     return result.data.user;
   };
 
+  const syncUser = (updatedUser) => {
+    if (!updatedUser || String(updatedUser._id) !== String(user?._id)) {
+      throw new Error('Unable to update the signed-in account from the API response.');
+    }
+    setUser(updatedUser);
+    return updatedUser;
+  };
+
   const isMember = user?.membershipStatus === 'active';
   const isStudent = user?.role === 'student';
   const isVolunteer = user?.role === 'volunteer';
@@ -172,6 +180,7 @@ export const AuthProvider = ({ children }) => {
       logout,
       register,
       refreshUser,
+      syncUser,
       isMember,
       isStudent,
       isVolunteer,

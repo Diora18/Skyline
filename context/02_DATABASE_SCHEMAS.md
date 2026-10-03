@@ -418,6 +418,7 @@ const expenseSchema = new mongoose.Schema({
   amount: { type: Number, required: true, min: 0 },
   category: { type: String, enum: ['supplies', 'food', 'decorations', 'transport', 'venue', 'other'], required: true },
   description: { type: String, required: true },
+  event: { type: mongoose.Schema.Types.ObjectId, ref: 'Event', default: null },
   linkedProject: { type: mongoose.Schema.Types.ObjectId, ref: 'Project', default: null },
   receiptUrl: { type: String, default: '' },  // URL or file path to uploaded receipt image
   status: { type: String, enum: ['submitted', 'approved', 'rejected', 'reimbursed'], default: 'submitted' },
@@ -434,6 +435,7 @@ const expenseSchema = new mongoose.Schema({
 | amount | Number | Yes | - | Out of pocket cost (min 0). |
 | category | String | Yes | - | `supplies`, `food`, `decorations`, `transport`, `venue`, `other`. |
 | description | String | Yes | - | Detailed description of purchase. |
+| event | ObjectId | No | null | Optional `Event` associated with an event-specific volunteer expense claim. |
 | linkedProject | ObjectId | No | null | Optional `Project` this relates to. |
 | receiptUrl | String | No | '' | S3 URL or path to receipt image. |
 | status | String | No | 'submitted' | `submitted`, `approved`, `rejected`, `reimbursed`. |
@@ -442,7 +444,7 @@ const expenseSchema = new mongoose.Schema({
 | rejectionReason | String | No | '' | Reason provided if `rejected`. |
 
 ### Relationships
-* **References:** `User` (`submittedBy`, `reviewedBy`), `Project` (`linkedProject`).
+* **References:** `User` (`submittedBy`, `reviewedBy`), `Event` (`event`), `Project` (`linkedProject`).
 * **Polymorphic Reference:** Target of `Transaction` (expense reimbursement).
 
 ### Business Rules

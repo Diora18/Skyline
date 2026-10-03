@@ -187,17 +187,24 @@ const sendResponse = (res, statusCode, success, data, message, errors = null) =>
 
 ### Role Hierarchy for Access Control
 - **student:** basic browsing, buy tickets (full price)
-- **volunteer:** + door scanner, task assignments, submit expenses
+- **volunteer:** + door scanner, task assignments, submit expenses; an event-specific volunteer may scan that event's tickets and submit claims linked to that event once approved by an event manager/officer.
 - **treasurer:** + treasury dashboard, expense approvals
 - **officer:** everything (full admin)
 
 ### Scoped Per-Event Delegation: Event Managers
 - To handle multiple concurrent events smoothly, officers can assign members/volunteers as **Event Managers** for a specific event via the `managers: [ObjectId]` array on the Event model.
-- **Event Managers have scoped admin rights on their assigned event only:** edit event details, view attendees/stats, scan tickets at the door, and manage linked project tasks.
+- **Event Managers have scoped admin rights on their assigned event only:** edit event details, view attendees/stats, scan tickets at the door, review that event's volunteer applications, and create tasks only in the project's event-linked project. Event managers must assign each created task to a user with the global `volunteer` role. The task API enforces both the event-manager scope and Volunteer-only assignment. Officer task-assignment permissions remain unchanged.
+- Event-manager status by itself does not grant task edit/delete rights; those remain Officer-only (apart from a task assignee's permitted status update).
 - They **do not** gain global officer permissions (cannot view member directory, cannot access treasury, cannot create new events, cannot edit other events).
 
 ### Membership Status Controls
 `membershipStatus` controls: pricing (member vs non-member), QR card access, merch ordering
+
+### Event-Specific Volunteer Applications
+- An event volunteer application is separate from the user's global role and is stored against both the event and applicant.
+- Application statuses are `pending`, `approved`, `rejected`, and `completed`; completing an approved application is an event-manager confirmation after the event ends, not a ticket check-in signal.
+- Officers, event creators, and managers assigned to that event may review its applications and set an optional volunteer responsibility. Members can view only their own applications/history.
+- An approved event application authorizes only that event's attendee list and ticket scans; it does not grant global scanner, treasury, or other event access. Approved or completed event volunteers may submit event-linked expense claims for that event; claims remain subject to Treasurer/Officer review.
 
 ---
 

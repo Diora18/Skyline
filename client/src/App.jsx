@@ -15,6 +15,7 @@ import Perks from './pages/Perks';
 import Team from './pages/Team';
 import Faq from './pages/Faq';
 import Tickets from './pages/Tickets';
+import MyVolunteering from './pages/MyVolunteering';
 import Scanner from './pages/Scanner';
 import Treasury from './pages/Treasury';
 import ExpenseSubmit from './pages/ExpenseSubmit';
@@ -78,6 +79,14 @@ function App() {
           }
         />
         <Route
+          path="/volunteering"
+          element={
+            <ProtectedRoute>
+              <MyVolunteering />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/orders"
           element={
             <ProtectedRoute>
@@ -88,7 +97,7 @@ function App() {
         <Route
           path="/expenses/submit"
           element={
-            <ProtectedRoute requireExpenseSubmit>
+            <ProtectedRoute requireEventExpense>
               <ExpenseSubmit />
             </ProtectedRoute>
           }
@@ -96,7 +105,7 @@ function App() {
         <Route
           path="/expenses/my"
           element={
-            <ProtectedRoute requireExpenseSubmit>
+            <ProtectedRoute>
               <MyExpenses />
             </ProtectedRoute>
           }
@@ -106,7 +115,7 @@ function App() {
         <Route
           path="/admin/scanner"
           element={
-            <ProtectedRoute requireScanner>
+            <ProtectedRoute requireEventScanner>
               <Scanner />
             </ProtectedRoute>
           }

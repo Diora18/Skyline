@@ -1,5 +1,6 @@
 const Event = require('../models/Event');
 const Project = require('../models/Project');
+const User = require('../models/User');
 const { canManageEvent } = require('../middleware/roleCheck');
 
 // GET /api/events

@@ -4,7 +4,7 @@ const expenseController = require('../controllers/expenseController');
 const auth = require('../middleware/auth');
 const { roleCheck } = require('../middleware/roleCheck');
 
-router.post('/', auth, roleCheck('volunteer', 'treasurer', 'officer'), expenseController.submitExpense);
+router.post('/', auth, expenseController.submitExpense);
 router.get('/my', auth, expenseController.getMyExpenses);
 router.get('/', auth, roleCheck('treasurer', 'officer'), expenseController.getAllExpenses);
 router.patch('/:id/review', auth, roleCheck('treasurer', 'officer'), expenseController.reviewExpense);

@@ -1,6 +1,7 @@
 const Ticket = require('../models/Ticket');
 const Event = require('../models/Event');
 const Transaction = require('../models/Transaction');
+const EventVolunteerApplication = require('../models/EventVolunteerApplication');
 const { generateTicketCode } = require('../utils/generateCode');
 const { canManageEvent } = require('../middleware/roleCheck');
 
@@ -145,9 +146,14 @@ exports.getEventTickets = async (req, res) => {
       });
     }
 
-    // Permission check: Volunteer, Treasurer, Officer, OR Event Manager for this event
+    const hasApprovedAssignment = await EventVolunteerApplication.exists({
+      event: event._id,
+      user: req.user._id,
+      status: 'approved',
+    });
     const isAuthorized = ['officer', 'treasurer', 'volunteer'].includes(req.user.role) ||
-      canManageEvent(event, req.user._id);
+      canManageEvent(event, req.user._id) ||
+      Boolean(hasApprovedAssignment);
 
     if (!isAuthorized) {
       return res.status(403).json({
@@ -208,9 +214,14 @@ exports.scanTicket = async (req, res) => {
       });
     }
 
-    // Permission check: Volunteer, Officer, OR Event Manager for this ticket's event
+    const hasApprovedAssignment = await EventVolunteerApplication.exists({
+      event: ticket.event._id,
+      user: req.user._id,
+      status: 'approved',
+    });
     const isAuthorized = ['officer', 'volunteer'].includes(req.user.role) ||
-      canManageEvent(ticket.event, req.user._id);
+      canManageEvent(ticket.event, req.user._id) ||
+      Boolean(hasApprovedAssignment);
 
     if (!isAuthorized) {
       return res.status(403).json({

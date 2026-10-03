@@ -1,7 +1,10 @@
 const Task = require('../models/Task');
 const Project = require('../models/Project');
+const User = require('../models/User');
+const Event = require('../models/Event');
+const { canManageEvent } = require('../middleware/roleCheck');
 
-// POST /api/tasks (Officer or assigned team)
+// POST /api/tasks (Officer or manager of the project's linked event)
 exports.createTask = async (req, res) => {
   try {
     const { title, description, project, assignee, priority, dueDate, supplies } = req.body;
@@ -21,6 +24,40 @@ exports.createTask = async (req, res) => {
         data: null,
         message: 'Project not found',
       });
+    }
+
+    const isOfficer = req.user.role === 'officer';
+    let eventManager = false;
+    if (!isOfficer && targetProject.linkedEvent) {
+      const event = await Event.findById(targetProject.linkedEvent);
+      eventManager = canManageEvent(event, req.user._id);
+    }
+
+    if (!isOfficer && !eventManager) {
+      return res.status(403).json({
+        success: false,
+        data: null,
+        message: 'Only Officers or managers of the project’s linked event may create tasks.',
+      });
+    }
+
+    if (eventManager && !assignee) {
+      return res.status(400).json({
+        success: false,
+        data: null,
+        message: 'Event managers must assign each project task to a Volunteer.',
+      });
+    }
+
+    if (eventManager) {
+      const volunteer = await User.findOne({ _id: assignee, role: 'volunteer' }).select('_id');
+      if (!volunteer) {
+        return res.status(400).json({
+          success: false,
+          data: null,
+          message: 'Project tasks may only be assigned to users with the Volunteer role.',
+        });
+      }
     }
 
     const task = await Task.create({
@@ -51,7 +88,7 @@ exports.createTask = async (req, res) => {
 };
 
 // PATCH /api/tasks/:id
-// Volunteers can move tasks assigned to them (status only). Officers can edit all fields.
+// Assigned users can change status only. Officers can edit all fields.
 exports.updateTask = async (req, res) => {
   try {
     const task = await Task.findById(req.params.id);

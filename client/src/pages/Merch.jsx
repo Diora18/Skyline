@@ -2,7 +2,7 @@ import { useState, useEffect, useContext } from 'react';
 import productService from '@/services/productService';
 import orderService from '@/services/orderService';
 import { AuthContext } from '@/context/AuthContext';
-import { ShoppingBag, Tag, CheckCircle2, Loader2, AlertCircle, X, Plus, Minus, ArrowRight, ShieldCheck } from 'lucide-react';
+import { ShoppingBag, CheckCircle2, Loader2, AlertCircle, X, Plus, Minus, ArrowRight, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 
@@ -34,6 +34,19 @@ export default function Merch() {
     if (filter === 'All') return true;
     return p.category?.toLowerCase() === filter.toLowerCase();
   });
+
+  const getProductImage = (product) => {
+    const imageIsRepeated = product.image && products.filter((item) => item.image === product.image).length > 1;
+    if (product.image && !imageIsRepeated) return product.image;
+    const categoryImages = {
+      hoodie: '/images/merch-hoodie.png',
+      other: '/images/merch-bottle.png',
+      cap: '/images/merch-cap.png',
+      tshirt: '/images/merch-tshirt.png',
+      sticker: '/images/merch-sticker.png',
+    };
+    return categoryImages[product.category?.toLowerCase()] || '/images/hero.png';
+  };
 
   return (
     <main className="min-h-screen py-12 px-4 md:px-6 max-w-6xl mx-auto">
@@ -94,16 +107,14 @@ export default function Merch() {
                 <div className="space-y-4">
                   <div className="relative h-52 w-full overflow-hidden rounded-2xl bg-muted">
                     <img
-                      src={product.image || 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=800&auto=format&fit=crop'}
+                      src={getProductImage(product)}
                       alt={product.name}
-                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-105"
                       onError={(e) => {
-                        e.target.src = 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=800&auto=format&fit=crop';
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = '/images/hero.png';
                       }}
                     />
-                    <span className="absolute top-3 left-3 rounded-full bg-background/90 backdrop-blur px-3 py-1 text-xs font-bold uppercase tracking-wider text-primary shadow-sm">
-                      {product.category}
-                    </span>
                     {isOutOfStock && (
                       <span className="absolute top-3 right-3 rounded-full bg-destructive text-destructive-foreground px-3 py-1 text-xs font-bold uppercase tracking-wider shadow-sm">
                         Sold Out

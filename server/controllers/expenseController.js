@@ -1,30 +1,73 @@
 const Expense = require('../models/Expense');
 const Transaction = require('../models/Transaction');
+const Event = require('../models/Event');
+const EventVolunteerApplication = require('../models/EventVolunteerApplication');
+const { canManageEvent } = require('../middleware/roleCheck');
 
-// POST /api/expenses (Volunteer, Treasurer, Officer)
+// POST /api/expenses (global expense roles or approved volunteers for the linked event)
 exports.submitExpense = async (req, res) => {
   try {
-    const { amount, category, description, linkedProject, receiptUrl } = req.body;
+    const { amount, category, description, linkedProject, receiptUrl, event: eventId } = req.body;
 
-    if (!amount || !category || !description) {
+    if (!Number.isFinite(Number(amount)) || Number(amount) <= 0 || !category || !description?.trim()) {
       return res.status(400).json({
         success: false,
         data: null,
-        message: 'Amount, category, and description are required to submit an expense claim',
+        message: 'A positive amount, category, and description are required to submit an expense claim',
+      });
+    }
+
+    let event = null;
+    if (eventId) {
+      event = await Event.findById(eventId);
+      if (!event) {
+        return res.status(404).json({
+          success: false,
+          data: null,
+          message: 'The event linked to this expense claim was not found.',
+        });
+      }
+
+      const hasApprovedAssignment = await EventVolunteerApplication.exists({
+        event: event._id,
+        user: req.user._id,
+        status: { $in: ['approved', 'completed'] },
+      });
+      const canSubmitForEvent = ['volunteer', 'treasurer', 'officer'].includes(req.user.role) ||
+        canManageEvent(event, req.user._id) ||
+        Boolean(hasApprovedAssignment);
+
+      if (!canSubmitForEvent) {
+        return res.status(403).json({
+          success: false,
+          data: null,
+          message: 'Only an approved event volunteer, authorized event manager, Volunteer, Treasurer, or Officer may submit an expense for this event.',
+        });
+      }
+    } else if (!['volunteer', 'treasurer', 'officer'].includes(req.user.role)) {
+      return res.status(403).json({
+        success: false,
+        data: null,
+        message: 'An approved event volunteer must link the claim to their assigned event.',
       });
     }
 
     const expense = await Expense.create({
       submittedBy: req.user._id,
-      amount: Math.abs(Number(amount)),
+      amount: Number(amount),
       category,
       description: description.trim(),
-      linkedProject: linkedProject || null,
+      event: event?._id || null,
+      linkedProject: event
+        ? (event.linkedProject || null)
+        : (linkedProject || null),
       receiptUrl: receiptUrl || '',
       status: 'submitted',
     });
 
     await expense.populate('submittedBy', 'name studentId email role');
+    await expense.populate('event', 'title startDate venue');
+    await expense.populate('linkedProject', 'title');
 
     res.status(201).json({
       success: true,
@@ -44,6 +87,7 @@ exports.submitExpense = async (req, res) => {
 exports.getMyExpenses = async (req, res) => {
   try {
     const expenses = await Expense.find({ submittedBy: req.user._id })
+      .populate('event', 'title startDate venue')
       .populate('linkedProject', 'title')
       .populate('reviewedBy', 'name role')
       .sort({ createdAt: -1 });
@@ -79,6 +123,7 @@ exports.getAllExpenses = async (req, res) => {
     const total = await Expense.countDocuments(query);
     const expenses = await Expense.find(query)
       .populate('submittedBy', 'name studentId email role')
+      .populate('event', 'title startDate venue')
       .populate('linkedProject', 'title')
       .populate('reviewedBy', 'name role')
       .sort({ createdAt: -1 })

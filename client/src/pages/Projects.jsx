@@ -1,12 +1,13 @@
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect, useContext, useCallback } from 'react';
 import projectService from '@/services/projectService';
 import { AuthContext } from '@/context/AuthContext';
 import { FolderKanban, Calendar, CheckSquare, Plus, ArrowRight, Loader2, Link2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 export default function Projects() {
-  const { isOfficer } = useContext(AuthContext);
+  const { user, isOfficer, managedEventIds } = useContext(AuthContext);
+  const userId = user?._id;
   const navigate = useNavigate();
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -16,21 +17,53 @@ export default function Projects() {
   const [newDeadline, setNewDeadline] = useState('');
   const [creating, setCreating] = useState(false);
 
-  const fetchProjects = async () => {
+  const fetchProjects = useCallback(async () => {
     setLoading(true);
     try {
       const res = await projectService.getProjects();
-      setProjects(res.data.projects || []);
+      const availableProjects = res.data.projects || [];
+
+      if (!isOfficer && userId) {
+        const assignedProjects = await Promise.all(
+          availableProjects.map(async (project) => {
+            const details = await projectService.getProjectById(project._id);
+            const assignedTasks = (details.data.project?.tasks || []).filter(
+              (task) => String(task.assignee?._id || task.assignee || '') === String(userId)
+            );
+
+            const linkedEventId = String(project.linkedEvent?._id || project.linkedEvent || '');
+            const managesLinkedEvent = managedEventIds.includes(linkedEventId);
+            if (assignedTasks.length === 0 && !managesLinkedEvent) return null;
+
+            const doneTasks = assignedTasks.filter((task) => task.status === 'done').length;
+            const visibleTasks = managesLinkedEvent ? details.data.project?.tasks || [] : assignedTasks;
+            const visibleDoneTasks = visibleTasks.filter((task) => task.status === 'done').length;
+            return {
+              ...project,
+              totalTasks: managesLinkedEvent ? visibleTasks.length : assignedTasks.length,
+              doneTasks: managesLinkedEvent ? visibleDoneTasks : doneTasks,
+              progress: visibleTasks.length > 0
+                ? Math.round((managesLinkedEvent ? visibleDoneTasks : doneTasks) /
+                  (managesLinkedEvent ? visibleTasks.length : assignedTasks.length) * 100)
+                : 0,
+            };
+          })
+        );
+
+        setProjects(assignedProjects.filter(Boolean));
+      } else {
+        setProjects(availableProjects);
+      }
     } catch (err) {
       console.error('Failed to load projects', err);
     } finally {
       setLoading(false);
     }
-  };
+  }, [isOfficer, managedEventIds, userId]);
 
   useEffect(() => {
     fetchProjects();
-  }, []);
+  }, [fetchProjects]);
 
   const handleCreateProject = async (e) => {
     e.preventDefault();
@@ -63,7 +96,9 @@ export default function Projects() {
           <span className="text-xs font-bold uppercase tracking-widest text-primary">Volunteer Operations</span>
           <h1 className="text-3xl md:text-5xl font-extrabold mt-1">Volunteer Projects</h1>
           <p className="text-muted-foreground text-sm max-w-lg mt-1">
-            Organize event logistics, student outreach, and club initiatives with interactive Kanban task boards.
+            {isOfficer
+              ? 'Organize event logistics, student outreach, and club initiatives with interactive Kanban task boards.'
+              : 'View the project work assigned to you and track your tasks on the Kanban boards.'}
           </p>
         </div>
 
@@ -86,7 +121,9 @@ export default function Projects() {
           <FolderKanban className="mx-auto h-12 w-12 text-muted-foreground/60" />
           <h3 className="text-xl font-bold">No active projects</h3>
           <p className="text-muted-foreground text-sm max-w-sm mx-auto">
-            No volunteer projects have been created yet. Officers can launch a new initiative above!
+            {isOfficer
+              ? 'No volunteer projects have been created yet. Officers can launch a new initiative above!'
+              : 'There are no project tasks assigned to you right now.'}
           </p>
         </div>
       ) : (

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Sparkles } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -41,9 +41,11 @@ export default function Login() {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <span className="flex size-12 items-center justify-center rounded-full bg-primary-foreground text-primary">
-              <Sparkles className="size-6" />
-            </span>
+            <img
+              src="/skyline-logo.png"
+              alt="Skyline Student Club"
+              className="h-16 w-32 rounded-xl bg-background object-contain"
+            />
           </div>
         </div>
         

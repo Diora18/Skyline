@@ -32,20 +32,28 @@ export function TeamSection() {
 
         <ul className="mt-12 grid grid-cols-2 gap-4 lg:grid-cols-4">
           {team.map((m, i) => (
-            <li key={m.name} className="flex flex-col gap-4 rounded-3xl border border-border bg-card p-5">
+            <li
+              key={m.name}
+              tabIndex={0}
+              className="group relative isolate flex min-h-82.5 flex-col items-center overflow-hidden rounded-3xl border border-border bg-card px-5 pb-5 pt-8 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-secondary/40 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            >
+              <div className="absolute inset-x-0 top-0 z-0 h-[58%] origin-top -translate-y-full rounded-b-[50%] bg-secondary transition-transform duration-300 group-hover:translate-y-0 group-focus-visible:translate-y-0" />
               <div
                 className={cn(
-                  'flex aspect-square items-center justify-center rounded-2xl font-display text-5xl font-extrabold',
+                  'relative z-10 flex aspect-square w-full items-center justify-center rounded-2xl font-display text-5xl font-extrabold transition-all duration-300 group-hover:aspect-square group-hover:w-3/4 group-hover:rounded-full group-hover:ring-8 group-hover:ring-background group-focus-visible:aspect-square group-focus-visible:w-3/4 group-focus-visible:rounded-full group-focus-visible:ring-8 group-focus-visible:ring-background',
                   swatches[i % swatches.length],
                 )}
                 aria-hidden="true"
               >
-                {m.initials}
+                <span className="transition-transform duration-300 group-hover:scale-110 group-focus-visible:scale-110">{m.initials}</span>
               </div>
-              <div>
+              <div className="relative z-10 mt-4 w-full transition-colors duration-300 group-hover:text-foreground group-focus-visible:text-foreground">
                 <p className="text-xs font-bold uppercase tracking-widest text-primary">{m.role}</p>
                 <h3 className="text-xl font-bold">{m.name}</h3>
                 <p className="text-sm text-muted-foreground">{m.major}</p>
+              </div>
+              <div className="relative z-10 mt-auto max-h-0 w-full overflow-hidden border-t border-transparent text-center text-xs font-semibold uppercase tracking-widest text-muted-foreground opacity-0 transition-all duration-300 group-hover:mt-4 group-hover:max-h-12 group-hover:border-border group-hover:pt-3 group-hover:opacity-100 group-focus-visible:mt-4 group-focus-visible:max-h-12 group-focus-visible:border-border group-focus-visible:pt-3 group-focus-visible:opacity-100">
+                Skyline SSA Board
               </div>
             </li>
           ))}

@@ -59,7 +59,8 @@ export default function Members() {
     return (
       m.name?.toLowerCase().includes(query) ||
       m.email?.toLowerCase().includes(query) ||
-      m.studentId?.toLowerCase().includes(query)
+      m.studentId?.toLowerCase().includes(query)||
+      m.role?.toLowerCase().includes(query)
     );
   });
 

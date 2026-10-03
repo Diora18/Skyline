@@ -1,7 +1,8 @@
-import { ArrowUpRight, Sparkles } from 'lucide-react'
+import { ArrowUpRight } from 'lucide-react'
 import { buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { Link } from 'react-router-dom'
+import { useAuth } from '@/hooks/useAuth'
 
 const columns = [
   { title: 'Club', links: [{ label: 'Events', href: '/event' }, { label: 'Membership', href: '/membership/join' }, { label: 'Team', href: '/team' }] },
@@ -10,6 +11,9 @@ const columns = [
 ]
 
 export function SiteFooter() {
+  const { user } = useAuth()
+  const hasActiveMembership = user?.membershipStatus === 'active'
+
   return (
     <footer className="bg-secondary text-secondary-foreground">
       <div className="mx-auto max-w-6xl px-4 py-16 md:px-6">
@@ -24,19 +28,18 @@ export function SiteFooter() {
               'h-14 rounded-full bg-accent px-7 text-base font-semibold text-accent-foreground hover:bg-accent/90',
             )}
           >
-            Join Skyline SSA
+            {hasActiveMembership ? 'View membership' : 'Join Skyline SSA'}
             <ArrowUpRight data-icon="inline-end" />
           </Link>
         </div>
 
         <div className="grid gap-10 pt-12 md:grid-cols-5">
           <div className="flex flex-col gap-4 md:col-span-2">
-            <span className="flex items-center gap-2">
-              <span className="flex size-9 items-center justify-center rounded-xl bg-primary">
-                <Sparkles className="size-5" aria-hidden="true" />
-              </span>
-              <span className="font-display text-xl font-bold">Skyline <span className="text-primary">SSA</span></span>
-            </span>
+            <img
+              src="/skyline-logo.png"
+              alt="Skyline Student Club"
+              className="h-14 w-32 rounded-xl bg-background object-contain"
+            />
             <p className="max-w-xs text-sm text-secondary-foreground/70">
               A registered student organization. Student Union, Room 112 · Open Mon–Thu, 12–6 PM.
             </p>
@@ -49,7 +52,7 @@ export function SiteFooter() {
                   <li key={l.label}>
                     {l.href.startsWith('/') ? (
                       <Link to={l.href} className="hover:text-accent">
-                        {l.label}
+                        {hasActiveMembership && l.href === '/membership/join' ? 'Membership status' : l.label}
                       </Link>
                     ) : (
                       <a href={l.href} className="hover:text-accent">

@@ -11,6 +11,8 @@ export default function ProtectedRoute({
   requireScanner = false,
   requireTreasury = false,
   requireExpenseSubmit = false,
+  requireEventScanner = false,
+  requireEventExpense = false,
   requireMember = false,
 }) {
   const { user, token, authLoading, isMember, isOfficer, isExecutive, canScan, canAccessTreasury, canSubmitExpenses } = useContext(AuthContext);
@@ -79,7 +81,27 @@ export default function ProtectedRoute({
           </div>
           <h2 className="text-2xl font-extrabold text-foreground">Scanner Access Restricted</h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            Door check-in access is reserved for Volunteers and Officers.
+            Door check-in access is reserved for Volunteers, Officers, event managers, and approved volunteers assigned to that event.
+          </p>
+          <Button className="mt-6 rounded-full" onClick={() => window.history.back()}>
+            Go Back
+          </Button>
+        </div>
+      </main>
+    );
+  }
+
+  const hasEventContext = Boolean(new URLSearchParams(location.search).get('eventId'));
+  if (requireEventScanner && !canScan && !hasEventContext) {
+    return (
+      <main className="flex flex-1 items-center justify-center px-6 py-24 min-h-[60vh]">
+        <div className="max-w-md text-center bg-card border border-border rounded-3xl p-8 shadow-sm">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-destructive/10 text-destructive mb-4">
+            <ShieldAlert className="h-7 w-7" />
+          </div>
+          <h2 className="text-2xl font-extrabold text-foreground">Event Assignment Required</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Open the scanner from an approved event volunteer assignment.
           </p>
           <Button className="mt-6 rounded-full" onClick={() => window.history.back()}>
             Go Back
@@ -99,6 +121,25 @@ export default function ProtectedRoute({
           <h2 className="text-2xl font-extrabold text-foreground">Expense Claim Access Restricted</h2>
           <p className="mt-2 text-sm text-muted-foreground">
             Expense claims are available to Volunteers, Treasurers, and Officers.
+          </p>
+          <Button className="mt-6 rounded-full" onClick={() => window.history.back()}>
+            Go Back
+          </Button>
+        </div>
+      </main>
+    );
+  }
+
+  if (requireEventExpense && !canSubmitExpenses && !hasEventContext) {
+    return (
+      <main className="flex flex-1 items-center justify-center px-6 py-24 min-h-[60vh]">
+        <div className="max-w-md text-center bg-card border border-border rounded-3xl p-8 shadow-sm">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-destructive/10 text-destructive mb-4">
+            <ShieldAlert className="h-7 w-7" />
+          </div>
+          <h2 className="text-2xl font-extrabold text-foreground">Approved Event Assignment Required</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Open an expense claim from the volunteering record for an event where you are approved.
           </p>
           <Button className="mt-6 rounded-full" onClick={() => window.history.back()}>
             Go Back

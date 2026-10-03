@@ -1,20 +1,71 @@
 import { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import ticketService from '@/services/ticketService';
+import eventService from '@/services/eventService';
 import { Html5QrcodeScanner } from 'html5-qrcode';
-import { QrCode, CheckCircle2, AlertTriangle, XCircle, Loader2, Camera, KeyRound, RefreshCw } from 'lucide-react';
+import { QrCode, CheckCircle2, AlertTriangle, XCircle, Loader2, Camera, KeyRound, RefreshCw, Users, MapPin, CalendarDays } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export default function Scanner() {
+  const [searchParams] = useSearchParams();
+  const eventId = searchParams.get('eventId');
   const [manualCode, setManualCode] = useState('');
   const [scanning, setScanning] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [eventLoading, setEventLoading] = useState(Boolean(eventId));
+  const [eventContextError, setEventContextError] = useState('');
+  const [eventContext, setEventContext] = useState(null);
+  const [eventTickets, setEventTickets] = useState([]);
   const [scanResult, setScanResult] = useState({ type: null, message: '', data: null });
 
   const scannerRef = useRef(null);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!eventId) {
+      setEventContext(null);
+      setEventTickets([]);
+      setEventLoading(false);
+      setEventContextError('');
+      return () => { cancelled = true; };
+    }
+
+    setEventContext(null);
+    setEventTickets([]);
+    setEventLoading(true);
+    setEventContextError('');
+
+    Promise.all([
+      eventService.getEventById(eventId),
+      ticketService.getEventTickets(eventId),
+    ]).then(([eventResponse, ticketsResponse]) => {
+      if (cancelled) return;
+      setEventContext(eventResponse.data?.event || null);
+      setEventTickets(ticketsResponse.data?.tickets || []);
+    }).catch((error) => {
+      if (!cancelled) {
+        setEventContextError(error.message || 'Unable to load this event’s ticket list.');
+      }
+    }).finally(() => {
+      if (!cancelled) setEventLoading(false);
+    });
+
+    return () => { cancelled = true; };
+  }, [eventId]);
+
   const processTicketCode = async (code) => {
-    if (!code || loading) return;
+    if (!code || loading || eventLoading || eventContextError) return;
     const cleanCode = code.trim().toUpperCase();
+
+    if (eventId && !eventTickets.some((ticket) => String(ticket.ticketCode || '').toUpperCase() === cleanCode)) {
+      setScanResult({
+        type: 'error',
+        message: 'This ticket is not listed for the selected event.',
+        data: null,
+      });
+      return;
+    }
 
     setLoading(true);
     try {
@@ -24,6 +75,11 @@ export default function Scanner() {
         message: res.message || 'Valid Ticket! Admission Granted.',
         data: res.data,
       });
+      if (eventId && res.data?.ticket) {
+        setEventTickets((current) => current.map((ticket) =>
+          ticket.ticketCode === cleanCode ? { ...ticket, ...res.data.ticket } : ticket
+        ));
+      }
     } catch (err) {
       if (err.data?.checkedInAt) {
         setScanResult({
@@ -57,6 +113,7 @@ export default function Scanner() {
         scanner.render(
           (decodedText) => {
             scanner.clear();
+            scannerRef.current = null;
             setScanning(false);
             processTicketCode(decodedText);
           },
@@ -95,18 +152,50 @@ export default function Scanner() {
     setManualCode('');
   };
 
+  const checkedInCount = eventTickets.filter((ticket) => ticket.status === 'used').length;
+  const eventDate = eventContext?.startDate
+    ? new Date(eventContext.startDate).toLocaleDateString(undefined, { dateStyle: 'medium' })
+    : '';
+
   return (
-    <main className="min-h-screen py-12 px-4 md:px-6 max-w-3xl mx-auto">
-      <div className="text-center space-y-2 border-b border-border pb-6">
+    <main className="min-h-screen w-full max-w-4xl mx-auto py-12 px-4 md:px-6">
+      <div className="border-b border-border pb-6">
         <span className="text-xs font-bold uppercase tracking-widest text-primary">Door Operations</span>
-        <h1 className="text-3xl md:text-4xl font-extrabold">Event Door QR Scanner</h1>
-        <p className="text-muted-foreground text-sm max-w-lg mx-auto">
-          Scan attendee QR codes or enter 12-digit ticket codes for instant admission verification.
+        <h1 className="mt-2 text-3xl md:text-4xl font-extrabold">
+          {eventContext ? `${eventContext.title} check-in` : 'Event Door QR Scanner'}
+        </h1>
+        <p className="mt-2 text-muted-foreground text-sm max-w-2xl">
+          Scan attendee QR codes or enter a ticket code to verify admission.
         </p>
       </div>
 
-      <div className="mt-8 space-y-8">
-        {/* Verification Result Notification Card */}
+      {eventId && (
+        <section className="mt-6 rounded-2xl border border-primary/20 bg-primary/5 p-4 md:p-5" aria-live="polite">
+          {eventLoading ? (
+            <p className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="size-4 animate-spin" /> Loading event access and ticket list...
+            </p>
+          ) : eventContextError ? (
+            <p role="alert" className="text-sm font-medium text-destructive">{eventContextError}</p>
+          ) : (
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <p className="font-bold">{eventContext?.title}</p>
+                <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                  {eventDate && <span className="inline-flex items-center gap-1.5"><CalendarDays className="size-3.5" />{eventDate}</span>}
+                  {eventContext?.venue && <span className="inline-flex items-center gap-1.5"><MapPin className="size-3.5" />{eventContext.venue}</span>}
+                </div>
+              </div>
+              <div className="flex items-center gap-2 rounded-full bg-background px-4 py-2 text-sm font-semibold">
+                <Users className="size-4 text-primary" />
+                {checkedInCount} / {eventTickets.length} checked in
+              </div>
+            </div>
+          )}
+        </section>
+      )}
+
+      <div className="mt-8 space-y-6">
         {scanResult.type && (
           <div
             className={`rounded-3xl p-6 border-2 text-center space-y-4 shadow-lg transition-all animate-in fade-in zoom-in ${
@@ -140,7 +229,6 @@ export default function Scanner() {
           </div>
         )}
 
-        {/* Camera Scanner View */}
         <div className="rounded-3xl border border-border bg-card p-6 shadow-sm space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -158,7 +246,7 @@ export default function Scanner() {
             <div className="text-center py-10 bg-muted/40 rounded-2xl border border-dashed border-border space-y-4">
               <QrCode className="mx-auto h-12 w-12 text-muted-foreground/60" />
               <p className="text-sm text-muted-foreground">Turn on camera to scan QR passes in real time.</p>
-              <Button onClick={startCameraScanner} className="rounded-full">
+              <Button onClick={startCameraScanner} disabled={eventLoading || Boolean(eventContextError)} className="rounded-full">
                 <Camera className="h-4 w-4 mr-2" />
                 Launch Camera Scanner
               </Button>
@@ -168,7 +256,6 @@ export default function Scanner() {
           )}
         </div>
 
-        {/* Manual Code Input View */}
         <div className="rounded-3xl border border-border bg-card p-6 shadow-sm space-y-4">
           <div className="flex items-center gap-2">
             <KeyRound className="h-5 w-5 text-primary" />
@@ -183,7 +270,7 @@ export default function Scanner() {
               onChange={(e) => setManualCode(e.target.value)}
               className="flex-1 rounded-full border border-input bg-background px-4 py-2.5 text-sm font-mono tracking-wider focus:outline-none focus:ring-2 focus:ring-primary"
             />
-            <Button type="submit" disabled={loading || !manualCode.trim()} className="rounded-full px-6 font-semibold">
+            <Button type="submit" disabled={loading || eventLoading || Boolean(eventContextError) || !manualCode.trim()} className="rounded-full px-6 font-semibold">
               {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : 'Verify Entry'}
             </Button>
           </form>
