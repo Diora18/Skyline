@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 export default function ProjectKanban() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user, isAdmin } = useContext(AuthContext);
+  const { user, isOfficer, isVolunteer } = useContext(AuthContext);
 
   const [project, setProject] = useState(null);
   const [tasks, setTasks] = useState([]);
@@ -151,10 +151,12 @@ export default function ProjectKanban() {
           <p className="text-muted-foreground text-sm max-w-2xl mt-1">{project.description}</p>
         </div>
 
-        <Button onClick={() => setShowTaskModal(true)} className="rounded-full shrink-0">
-          <Plus className="h-4 w-4 mr-2" />
-          Add Kanban Task
-        </Button>
+        {isOfficer && (
+          <Button onClick={() => setShowTaskModal(true)} className="rounded-full shrink-0">
+            <Plus className="h-4 w-4 mr-2" />
+            Add Kanban Task
+          </Button>
+        )}
       </div>
 
       {/* 3-Column Kanban Board */}
@@ -171,7 +173,9 @@ export default function ProjectKanban() {
               task={task}
               onMoveRight={() => handleUpdateStatus(task._id, 'in_progress')}
               onDelete={() => handleDeleteTask(task._id)}
-              isAdmin={isAdmin}
+              onMarkDone={() => handleUpdateStatus(task._id, 'done')}
+              canMarkDone={isVolunteer && String(task.assignee?._id || task.assignee) === String(user?._id)}
+              isOfficer={isOfficer}
               getPriorityBadge={getPriorityBadge}
             />
           ))}
@@ -190,7 +194,9 @@ export default function ProjectKanban() {
               onMoveLeft={() => handleUpdateStatus(task._id, 'todo')}
               onMoveRight={() => handleUpdateStatus(task._id, 'done')}
               onDelete={() => handleDeleteTask(task._id)}
-              isAdmin={isAdmin}
+              onMarkDone={() => handleUpdateStatus(task._id, 'done')}
+              canMarkDone={isVolunteer && String(task.assignee?._id || task.assignee) === String(user?._id)}
+              isOfficer={isOfficer}
               getPriorityBadge={getPriorityBadge}
             />
           ))}
@@ -208,7 +214,8 @@ export default function ProjectKanban() {
               task={task}
               onMoveLeft={() => handleUpdateStatus(task._id, 'in_progress')}
               onDelete={() => handleDeleteTask(task._id)}
-              isAdmin={isAdmin}
+              canMarkDone={false}
+              isOfficer={isOfficer}
               getPriorityBadge={getPriorityBadge}
               isDone
             />
@@ -320,7 +327,7 @@ function KanbanColumn({ title, count, color, children }) {
   );
 }
 
-function TaskCard({ task, onMoveLeft, onMoveRight, onDelete, isAdmin, getPriorityBadge, isDone }) {
+function TaskCard({ task, onMoveLeft, onMoveRight, onDelete, onMarkDone, canMarkDone, isOfficer, getPriorityBadge, isDone }) {
   return (
     <div className={`rounded-2xl border border-border bg-card p-4 space-y-3 shadow-sm transition-all hover:shadow-md ${isDone ? 'opacity-75' : ''}`}>
       <div className="flex items-start justify-between gap-2">
@@ -354,7 +361,7 @@ function TaskCard({ task, onMoveLeft, onMoveRight, onDelete, isAdmin, getPriorit
         </div>
 
         <div className="flex items-center gap-1">
-          {onMoveLeft && (
+          {isOfficer && onMoveLeft && (
             <button
               onClick={onMoveLeft}
               className="p-1 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground"
@@ -363,7 +370,7 @@ function TaskCard({ task, onMoveLeft, onMoveRight, onDelete, isAdmin, getPriorit
               <ChevronLeft className="h-4 w-4" />
             </button>
           )}
-          {onMoveRight && (
+          {isOfficer && onMoveRight && (
             <button
               onClick={onMoveRight}
               className="p-1 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground"
@@ -372,7 +379,17 @@ function TaskCard({ task, onMoveLeft, onMoveRight, onDelete, isAdmin, getPriorit
               <ChevronRight className="h-4 w-4" />
             </button>
           )}
-          {isAdmin && (
+          {canMarkDone && !isDone && (
+            <button
+              onClick={onMarkDone}
+              className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-emerald-600 hover:bg-emerald-500/10"
+              title="Mark my task done"
+            >
+              <CheckCircle2 className="h-4 w-4" />
+              Done
+            </button>
+          )}
+          {isOfficer && (
             <button
               onClick={onDelete}
               className="p-1 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive"

@@ -8,7 +8,6 @@ import { useAuth } from '@/hooks/useAuth'
 const baseNavLinks = [
   { href: '/events', label: 'Events' },
   { href: '/merch', label: 'Merch' },
-  { href: '/projects', label: 'Projects' },
   { href: '/announcements', label: 'Bulletin' },
   { href: '/perks', label: 'Perks' },
   { href: '/team', label: 'Team' },
@@ -16,20 +15,27 @@ const baseNavLinks = [
 
 export function SiteHeader() {
   const [open, setOpen] = useState(false)
-  const { user, logout, isExecutive, isAdmin } = useAuth()
+  const { user, logout, canScan, canAccessTreasury, canSubmitExpenses, isOfficer } = useAuth()
 
   const navLinks = [
     ...baseNavLinks,
     ...(user ? [
+      { href: '/projects', label: 'Projects' },
       { href: '/tickets', label: 'My Tickets' },
-      { href: '/orders', label: 'My Orders' }
+      { href: '/orders', label: 'My Orders' },
     ] : []),
-    ...(isExecutive ? [
-      { href: '/admin/treasury', label: 'Treasury' },
-      { href: '/admin/expenses', label: 'Claims' },
+    ...(canSubmitExpenses ? [
+      { href: '/expenses/submit', label: 'Submit Expense' },
+      { href: '/expenses/my', label: 'My Claims' },
+    ] : []),
+    ...(canScan ? [
       { href: '/admin/scanner', label: 'Scanner' },
     ] : []),
-    ...(isAdmin ? [
+    ...(canAccessTreasury ? [
+      { href: '/admin/treasury', label: 'Treasury' },
+      { href: '/admin/expenses', label: 'Claims' },
+    ] : []),
+    ...(isOfficer ? [
       { href: '/admin/members', label: 'Members' },
       { href: '/admin/orders', label: 'Orders Queue' },
       { href: '/admin/inventory', label: 'Inventory' },

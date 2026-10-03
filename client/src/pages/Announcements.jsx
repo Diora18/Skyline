@@ -5,7 +5,7 @@ import { Megaphone, Plus, Trash2, Calendar, MailCheck, Loader2 } from 'lucide-re
 import { Button } from '@/components/ui/button';
 
 export default function Announcements() {
-  const { isAdmin } = useContext(AuthContext);
+  const { isOfficer } = useContext(AuthContext);
   const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('All');
@@ -81,7 +81,7 @@ export default function Announcements() {
           </p>
         </div>
 
-        {isAdmin && (
+        {isOfficer && (
           <Button onClick={() => setShowModal(true)} className="rounded-full">
             <Plus className="h-4 w-4 mr-2" />
             Publish Notice
@@ -141,7 +141,7 @@ export default function Announcements() {
                     <h2 className="text-2xl font-extrabold">{item.title}</h2>
                   </div>
 
-                  {isAdmin && (
+                  {isOfficer && (
                     <button
                       onClick={() => handleDelete(item._id)}
                       className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"

@@ -8,7 +8,7 @@ export default function ExpenseSubmit() {
   const navigate = useNavigate();
   const [title, setTitle] = useState('');
   const [amount, setAmount] = useState('');
-  const [category, setCategory] = useState('event_supplies');
+  const [category, setCategory] = useState('supplies');
   const [description, setDescription] = useState('');
   const [receiptUrl, setReceiptUrl] = useState('');
   const [loading, setLoading] = useState(false);
@@ -24,10 +24,9 @@ export default function ExpenseSubmit() {
 
     try {
       await expenseService.submitExpense({
-        title,
         amount: Number(amount),
         category,
-        description,
+        description: [title, description].filter(Boolean).join('\n\n'),
         receiptUrl,
       });
       setSuccess(true);
@@ -101,10 +100,11 @@ export default function ExpenseSubmit() {
                   onChange={(e) => setCategory(e.target.value)}
                   className="w-full rounded-2xl border border-input bg-background px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 >
-                  <option value="event_supplies">Event Supplies</option>
-                  <option value="food_catering">Food & Catering</option>
-                  <option value="marketing_print">Marketing & Print</option>
-                  <option value="logistics_travel">Logistics & Travel</option>
+                  <option value="supplies">Supplies</option>
+                  <option value="food">Food</option>
+                  <option value="decorations">Decorations</option>
+                  <option value="transport">Transport</option>
+                  <option value="venue">Venue</option>
                   <option value="other">Other</option>
                 </select>
               </div>

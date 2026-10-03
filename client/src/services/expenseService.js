@@ -15,12 +15,12 @@ export const expenseService = {
     return await api.get(endpoint);
   },
 
-  reviewExpense: async (id, status, reviewNotes) => {
-    return await api.put(`/expenses/${id}/review`, { status, reviewNotes });
+  reviewExpense: async (id, action, rejectionReason) => {
+    return await api.patch(`/expenses/${id}/review`, { action, rejectionReason });
   },
 
   reimburseExpense: async (id) => {
-    return await api.put(`/expenses/${id}/reimburse`);
+    return await api.patch(`/expenses/${id}/reimburse`, {});
   },
 };
 

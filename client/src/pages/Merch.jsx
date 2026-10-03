@@ -155,7 +155,7 @@ export default function Merch() {
 }
 
 function ProductCheckoutModal({ product, onClose, onOrderSuccess }) {
-  const { user, token } = useContext(AuthContext);
+  const { user, token, isMember } = useContext(AuthContext);
   const navigate = useNavigate();
   const [selectedVariant, setSelectedVariant] = useState(product.variants?.[0] || null);
   const [quantity, setQuantity] = useState(1);
@@ -318,7 +318,13 @@ function ProductCheckoutModal({ product, onClose, onOrderSuccess }) {
               </div>
 
               <Button
-                onClick={handleOrder}
+                onClick={() => {
+                  if (!token || !isMember) {
+                    navigate(!token ? '/login' : '/membership/join');
+                    return;
+                  }
+                  handleOrder();
+                }}
                 disabled={loading || availableStock === 0}
                 className="rounded-full px-6 h-12 text-base font-semibold"
               >
@@ -329,6 +335,8 @@ function ProductCheckoutModal({ product, onClose, onOrderSuccess }) {
                   </>
                 ) : !token ? (
                   'Sign In to Checkout'
+                ) : !isMember ? (
+                  'Join / Renew to Order'
                 ) : (
                   <>
                     Checkout Order

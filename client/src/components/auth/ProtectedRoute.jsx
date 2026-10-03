@@ -8,9 +8,12 @@ export default function ProtectedRoute({
   children,
   requireOfficer = false,
   requireExecutive = false,
+  requireScanner = false,
+  requireTreasury = false,
+  requireExpenseSubmit = false,
   requireMember = false,
 }) {
-  const { user, token, authLoading, isMember, isAdmin, isExecutive } = useContext(AuthContext);
+  const { user, token, authLoading, isMember, isOfficer, isExecutive, canScan, canAccessTreasury, canSubmitExpenses } = useContext(AuthContext);
   const location = useLocation();
 
   if (authLoading) {
@@ -28,8 +31,8 @@ export default function ProtectedRoute({
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Check role restrictions
-  if (requireOfficer && !isAdmin) {
+  // Role Checks
+  if (requireOfficer && !isOfficer) {
     return (
       <main className="flex flex-1 items-center justify-center px-6 py-24 min-h-[60vh]">
         <div className="max-w-md text-center bg-card border border-border rounded-3xl p-8 shadow-sm">
@@ -39,6 +42,63 @@ export default function ProtectedRoute({
           <h2 className="text-2xl font-extrabold text-foreground">Officer Access Required</h2>
           <p className="mt-2 text-sm text-muted-foreground">
             This area is restricted to Skyline SSA Executive Officers. Contact an administrator if you need access.
+          </p>
+          <Button className="mt-6 rounded-full" onClick={() => window.history.back()}>
+            Go Back
+          </Button>
+        </div>
+      </main>
+    );
+  }
+
+  if (requireTreasury && !canAccessTreasury) {
+    return (
+      <main className="flex flex-1 items-center justify-center px-6 py-24 min-h-[60vh]">
+        <div className="max-w-md text-center bg-card border border-border rounded-3xl p-8 shadow-sm">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-destructive/10 text-destructive mb-4">
+            <ShieldAlert className="h-7 w-7" />
+          </div>
+          <h2 className="text-2xl font-extrabold text-foreground">Treasury Access Restricted</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Financial ledger management is reserved for Treasurers and Officers.
+          </p>
+          <Button className="mt-6 rounded-full" onClick={() => window.history.back()}>
+            Go Back
+          </Button>
+        </div>
+      </main>
+    );
+  }
+
+  if (requireScanner && !canScan) {
+    return (
+      <main className="flex flex-1 items-center justify-center px-6 py-24 min-h-[60vh]">
+        <div className="max-w-md text-center bg-card border border-border rounded-3xl p-8 shadow-sm">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-destructive/10 text-destructive mb-4">
+            <ShieldAlert className="h-7 w-7" />
+          </div>
+          <h2 className="text-2xl font-extrabold text-foreground">Scanner Access Restricted</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Door check-in access is reserved for Volunteers and Officers.
+          </p>
+          <Button className="mt-6 rounded-full" onClick={() => window.history.back()}>
+            Go Back
+          </Button>
+        </div>
+      </main>
+    );
+  }
+
+  if (requireExpenseSubmit && !canSubmitExpenses) {
+    return (
+      <main className="flex flex-1 items-center justify-center px-6 py-24 min-h-[60vh]">
+        <div className="max-w-md text-center bg-card border border-border rounded-3xl p-8 shadow-sm">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-destructive/10 text-destructive mb-4">
+            <ShieldAlert className="h-7 w-7" />
+          </div>
+          <h2 className="text-2xl font-extrabold text-foreground">Expense Claim Access Restricted</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Expense claims are available to Volunteers, Treasurers, and Officers.
           </p>
           <Button className="mt-6 rounded-full" onClick={() => window.history.back()}>
             Go Back

@@ -28,7 +28,7 @@ export default function AdminExpenses() {
   const handleReview = async (id, status) => {
     setActionId(id);
     try {
-      await expenseService.reviewExpense(id, status, `Reviewed as ${status}`);
+      await expenseService.reviewExpense(id, status);
       await fetchExpenses();
     } catch (err) {
       alert(err.message || 'Failed to review claim');
@@ -74,7 +74,7 @@ export default function AdminExpenses() {
         </div>
 
         <div className="flex flex-wrap gap-2">
-          {['all', 'pending', 'approved', 'reimbursed', 'rejected'].map((st) => (
+          {['all', 'submitted', 'approved', 'reimbursed', 'rejected'].map((st) => (
             <button
               key={st}
               onClick={() => setFilter(st)}
@@ -110,7 +110,7 @@ export default function AdminExpenses() {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
                   <div>
                     <div className="flex items-center gap-2">
-                      <h3 className="text-xl font-extrabold">{expense.title}</h3>
+                      <h3 className="text-xl font-extrabold">Expense claim</h3>
                       {getStatusBadge(expense.status)}
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">
@@ -147,12 +147,12 @@ export default function AdminExpenses() {
                   )}
 
                   <div className="flex items-center gap-2">
-                    {expense.status === 'pending' && (
+                    {expense.status === 'submitted' && (
                       <>
                         <Button
                           size="sm"
                           disabled={isProcessing}
-                          onClick={() => handleReview(expense._id, 'approved')}
+                          onClick={() => handleReview(expense._id, 'approve')}
                           className="rounded-full text-xs"
                         >
                           Approve Claim
@@ -161,7 +161,7 @@ export default function AdminExpenses() {
                           size="sm"
                           variant="ghost"
                           disabled={isProcessing}
-                          onClick={() => handleReview(expense._id, 'rejected')}
+                          onClick={() => handleReview(expense._id, 'reject')}
                           className="rounded-full text-xs text-destructive hover:bg-destructive/10"
                         >
                           Reject

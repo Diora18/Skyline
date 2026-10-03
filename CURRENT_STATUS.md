@@ -1,79 +1,42 @@
-# 🏢 SKYLINE SSA — CURRENT STATUS REPORT
-> Audit conducted: 2026-10-03 | Branch: `merged`
+# Skyline SSA — Current Status
 
----
+Last audited: 2026-10-03
 
-## 📊 Overall Progress
+## Repository and documentation
 
-| Layer | Status | Completion |
-|:---|:---|:---|
-| **Context & Docs** | ✅ Complete | 100% |
-| **Database Models** | ✅ Complete | 100% |
-| **Backend API Controllers & Routes** | ✅ Complete | 100% |
-| **Database Seeder** | ✅ Complete | 100% |
-| **Frontend Services & Auth** | ✅ Complete | 100% |
-| **Frontend Pages & Features** | ✅ Complete | 100% |
-| **Overall System Readiness** | ✅ Fully Functional | **100%** |
+- The active application is a React/Vite client in `client/` and an Express/MongoDB server in `server/`.
+- The requested files `context/01_PROJECT_OVERVIEW.md` and `context/04_USER_ROLES_AND_PERMISSIONS.md` are not present. The current references are `context/00_PROJECT_OVERVIEW.md`, `context/01_PROJECT_RULES.md`, `context/03_API_ENDPOINTS.md`, and `context/04_PAGES_AND_COMPONENTS.md`.
+- The four global roles are `student`, `volunteer`, `treasurer`, and `officer`. Membership status is separate from role and controls member pricing and merch checkout.
+- No backend files, API contracts, models, routes, middleware, or seed data were changed.
+- Added a workspace-level `package.json` so npm commands from the provided `SKYLINE` folder resolve to the nested Skyline application instead of the unrelated `C:\Users\vedan` Svelte/Vite project.
 
----
+## Workspace commands
 
-## 🟢 1. Complete & Verified Features
+Run these from the top-level `SKYLINE` folder:
 
-### A. Context & Documentation (`/context`)
-- `01_PROJECT_OVERVIEW.md` - Complete architecture specification & user roles.
-- `02_DATABASE_SCHEMAS.md` - Schema design for all 10 core entities.
-- `03_API_SPECIFICATIONS.md` - Endpoint contracts & payloads.
-- `04_USER_ROLES_AND_PERMISSIONS.md` - Matrix of RBAC definitions.
-- `05_HACKATHON_DEMO_SCRIPT.md` - 5-minute presentation walkthrough script.
-- `PROGRESS_TRACKER.md` - Feature checklist (100% complete).
+- `npm run dev` — start the frontend Vite server.
+- `npm run dev:server` — start the backend Express server.
+- `npm run build` / `npm run lint` — run the client build or lint.
+- `npm run seed` — run the existing backend seeder. **This drops all collections in the configured MongoDB database before inserting demo data.**
 
-### B. Database Models (`server/models/`)
-All 10 MongoDB Mongoose schemas implemented with validations & relationships:
-- `User.js` - Student/Volunteer/Treasurer/Officer, Membership status.
-- `Event.js` - Dynamic pricing, capacity, manager scoping.
-- `Ticket.js` - QR format `TKT-2026-XXXX`, check-in state.
-- `Product.js` - Merch catalog with size/color variants.
-- `Order.js` - `ORD-2026-XXXX`, fulfillment pipeline.
-- `Project.js` - Initiative goals & deadlines.
-- `Task.js` - Kanban tasks assigned to projects & users.
-- `Transaction.js` - Central automated financial ledger.
-- `Expense.js` - Claims review & reimbursement workflow.
-- `Announcement.js` - Bulletin board feed & notice updates.
+## Role-based frontend status
 
-### C. Backend API Infrastructure (`server/`)
-- `server.js` - Express server setup with CORS, JSON parsing, error handler.
-- `config/db.js` - MongoDB connection handling.
-- `middleware/auth.js` & `middleware/roleCheck.js` - JWT auth & RBAC route protection.
-- `utils/generateCode.js` - Unique code generator for tickets & orders.
-- `seed.js` - Database seeder script with demo dataset.
-- **Routes & Controllers:** Auth, Members, Events, Tickets, Merch/Products, Orders, Projects, Tasks, Treasury, Expenses, Announcements.
+| Role | Frontend access and controls |
+| --- | --- |
+| Student | Public events, merch browsing, announcements, and other public pages; authenticated tickets, orders, and projects. Active membership is required for merch checkout. No administrative controls. |
+| Volunteer | Student/member functionality, scanner access, submitting and viewing their expense claims, and marking only their own assigned project tasks done. |
+| Treasurer | Student/member functionality, treasury and expense-review pages, and submitting/viewing their own expense claims. Scanner access is not shown because the role matrix reserves it for Volunteers and Officers. |
+| Officer | Shared functionality plus member administration, order fulfillment, inventory, announcement publishing/deletion, project/task management, scanner, treasury, and expense review. |
 
-### D. Frontend Infrastructure & Domain Features (`client/src/`)
-1. **Authentication & RBAC (`AuthContext.jsx` & `ProtectedRoute.jsx`):**
-   - JWT state persistence, role guards (`requireOfficer`, `requireExecutive`, `requireMember`).
-2. **Central API Helper (`services/api.js`):**
-   - Standardized fetch client with automatic `Authorization: Bearer <token>` injection.
-3. **Events & Ticket Purchasing (`pages/Events.jsx` & `EventDetailModal.tsx`):**
-   - Live fetching from `/api/events`, dynamic member/public pricing, capacity meter, RSVP ticket purchase (`/api/tickets/purchase`).
-4. **Digital Ticket Wallet (`pages/Tickets.jsx`):**
-   - User wallet displaying active/used tickets with scannable QR code preview (`qrcode.react`).
-5. **Door QR Scanner (`pages/Scanner.jsx`):**
-   - Camera QR code scanner (`html5-qrcode`) and manual ticket lookup (`/api/tickets/scan`) with instant green/yellow/red visual feedback cards.
-6. **Merch Store & Orders (`pages/Merch.jsx`, `Orders.jsx`, `AdminOrders.jsx`):**
-   - Product catalog with category filter, variant size/color selector, stock checking, order checkout (`/api/orders`), student order history, and officer order fulfillment queue.
-7. **Volunteer Projects & Interactive Kanban Board (`pages/Projects.jsx`, `ProjectKanban.jsx`):**
-   - Initiative list and 3-column Kanban task board (**To Do**, **In Progress**, **Done**) with priority badges, assignee tags, supplies checklist, and task creation modal (`/api/tasks`).
-8. **Treasury & Expenses (`pages/Treasury.jsx`, `ExpenseSubmit.jsx`, `AdminExpenses.jsx`):**
-   - Real-time financial summary cards (Net Balance, Income, Expenses, Active Members), transaction ledger, manual entry, expense claim submission, and officer reimbursement queue.
-9. **Member Directory & Announcements (`pages/Members.jsx`, `Announcements.jsx`):**
-   - Searchable student directory with role promotion modal, dues renewal trigger, and filterable bulletin notice feed with officer publishing modal.
-10. **Inventory Management (`pages/Inventory.jsx`):**
-    - Real-time stock adjustment table per SKU variant.
+Project routes now require authentication. Restricted pages are guarded at the route level, with matching role-specific navigation. A personal expense-claims page uses the existing `/api/expenses/my` endpoint.
 
----
+The expense submission and review UI now follows existing backend fields, category/status values, and PATCH review/reimbursement routes. Public merch browsing remains available; checkout directs users to sign in or activate/renew membership when required.
 
-## 🟢 2. System Readiness & Verification Summary
+## Validation
 
-- **TypeScript Compilation:** Passed cleanly with `npx tsc --noEmit` (**0 errors, 0 warnings**).
-- **Backend API Protection:** 100% Read-Only compliance maintained (zero server files modified).
-- **Dev Servers Status:** Both client (`http://localhost:5173`) and server (`http://localhost:5000`) running smoothly.
+- `npm run build` in `client/`: passed. Vite reported the existing missing `./.svelte-kit/tsconfig.json` base-config warning and a large-bundle advisory.
+- `npm run lint` in `client/`: passed with existing Oxlint warnings; no lint failures.
+- From the workspace root, `npm run build` and `npm run lint` both resolve to the client; `npm run dev -- --version` resolves to the local Vite 5.4.21 binary.
+- Runtime checks: frontend returned HTTP 200, `/api/health` returned HTTP 200, and `/api/events` returned HTTP 200. A local MongoDB listener is present on port 27017.
+- Changed frontend files were checked with the VS Code Problems tool: no errors found.
+- Role separation was checked against the route guards, navigation, and action visibility in the UI. No live role-account/browser integration test suite is present in the client package.

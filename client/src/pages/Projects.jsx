@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Link, useNavigate } from 'react-router-dom';
 
 export default function Projects() {
-  const { isAdmin } = useContext(AuthContext);
+  const { isOfficer } = useContext(AuthContext);
   const navigate = useNavigate();
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -67,7 +67,7 @@ export default function Projects() {
           </p>
         </div>
 
-        {isAdmin && (
+        {isOfficer && (
           <Button onClick={() => setShowCreateModal(true)} className="rounded-full">
             <Plus className="h-4 w-4 mr-2" />
             New Initiative

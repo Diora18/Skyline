@@ -95,8 +95,18 @@ export const AuthProvider = ({ children }) => {
   };
 
   const isMember = user?.membershipStatus === 'active';
+  const isStudent = user?.role === 'student';
+  const isVolunteer = user?.role === 'volunteer';
+  const isTreasurer = user?.role === 'treasurer';
+  const isOfficer = user?.role === 'officer';
   const isAdmin = user?.role === 'officer';
   const isExecutive = user?.role === 'treasurer' || user?.role === 'officer';
+
+  // Permission checkers
+  const canScan = ['volunteer', 'officer'].includes(user?.role);
+  const canAccessTreasury = ['treasurer', 'officer'].includes(user?.role);
+  const canManageMembers = user?.role === 'officer';
+  const canSubmitExpenses = ['volunteer', 'treasurer', 'officer'].includes(user?.role);
 
   return (
     <AuthContext.Provider value={{
@@ -108,8 +118,16 @@ export const AuthProvider = ({ children }) => {
       register,
       refreshUser,
       isMember,
+      isStudent,
+      isVolunteer,
+      isTreasurer,
+      isOfficer,
       isAdmin,
       isExecutive,
+      canScan,
+      canAccessTreasury,
+      canManageMembers,
+      canSubmitExpenses,
     }}>
       {children}
     </AuthContext.Provider>

@@ -18,6 +18,7 @@ import Tickets from './pages/Tickets';
 import Scanner from './pages/Scanner';
 import Treasury from './pages/Treasury';
 import ExpenseSubmit from './pages/ExpenseSubmit';
+import MyExpenses from './pages/MyExpenses';
 import AdminExpenses from './pages/AdminExpenses';
 import Members from './pages/Members';
 import Announcements from './pages/Announcements';
@@ -50,10 +51,24 @@ function App() {
         <Route path="/team" element={<Team />} />
         <Route path="/faq" element={<Faq />} />
         <Route path="/membership/join" element={<JoinMembership />} />
-        <Route path="/projects" element={<Projects />} />
-        <Route path="/projects/:id" element={<ProjectKanban />} />
+        <Route
+          path="/projects"
+          element={
+            <ProtectedRoute>
+              <Projects />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/projects/:id"
+          element={
+            <ProtectedRoute>
+              <ProjectKanban />
+            </ProtectedRoute>
+          }
+        />
 
-        {/* Protected Student Routes */}
+        {/* Protected member routes */}
         <Route
           path="/tickets"
           element={
@@ -73,25 +88,25 @@ function App() {
         <Route
           path="/expenses/submit"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute requireExpenseSubmit>
               <ExpenseSubmit />
             </ProtectedRoute>
           }
         />
-
-        {/* Protected Officer & Executive Operations Routes */}
         <Route
-          path="/admin/orders"
+          path="/expenses/my"
           element={
-            <ProtectedRoute requireOfficer>
-              <AdminOrders />
+            <ProtectedRoute requireExpenseSubmit>
+              <MyExpenses />
             </ProtectedRoute>
           }
         />
+
+        {/* Volunteer, Treasurer & Officer Door Scanner */}
         <Route
           path="/admin/scanner"
           element={
-            <ProtectedRoute requireExecutive>
+            <ProtectedRoute requireScanner>
               <Scanner />
             </ProtectedRoute>
           }
@@ -99,15 +114,17 @@ function App() {
         <Route
           path="/scanner"
           element={
-            <ProtectedRoute requireExecutive>
+            <ProtectedRoute requireScanner>
               <Scanner />
             </ProtectedRoute>
           }
         />
+
+        {/* Treasurer & Officer Financial Management */}
         <Route
           path="/admin/treasury"
           element={
-            <ProtectedRoute requireExecutive>
+            <ProtectedRoute requireTreasury>
               <Treasury />
             </ProtectedRoute>
           }
@@ -115,8 +132,18 @@ function App() {
         <Route
           path="/admin/expenses"
           element={
-            <ProtectedRoute requireExecutive>
+            <ProtectedRoute requireTreasury>
               <AdminExpenses />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Officer Administration Routes */}
+        <Route
+          path="/admin/orders"
+          element={
+            <ProtectedRoute requireOfficer>
+              <AdminOrders />
             </ProtectedRoute>
           }
         />
