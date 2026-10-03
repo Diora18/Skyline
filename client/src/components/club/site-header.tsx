@@ -2,11 +2,11 @@ import { useState } from 'react'
 import { Menu, Sparkles, X } from 'lucide-react'
 import { buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { Link, useLocation } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 
 const navLinks = [
-  { href: '/#events', label: 'Events' },
+  { href: '/event', label: 'Events' },
   { href: '/#perks', label: 'Perks' },
   { href: '/#team', label: 'Team' },
   { href: '/merch', label: 'Merch' },
@@ -16,8 +16,6 @@ const navLinks = [
 export function SiteHeader() {
   const [open, setOpen] = useState(false)
   const { user, logout } = useAuth()
-  const location = useLocation()
-  const isHome = location.pathname === '/'
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background/85 backdrop-blur-md">
@@ -32,24 +30,14 @@ export function SiteHeader() {
         <nav aria-label="Main" className="hidden md:block">
           <ul className="flex items-center gap-1">
             {navLinks.map((link) => {
-              const isHash = link.href.includes('#')
               return (
                 <li key={link.label}>
-                  {isHash && isHome ? (
-                    <a
-                      href={link.href.replace('/', '')}
-                      className="rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                    >
-                      {link.label}
-                    </a>
-                  ) : (
-                    <Link
-                      to={link.href}
-                      className="rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                    >
-                      {link.label}
-                    </Link>
-                  )}
+                  <Link
+                    to={link.href}
+                    className="rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  >
+                    {link.label}
+                  </Link>
                 </li>
               )
             })}
@@ -87,26 +75,15 @@ export function SiteHeader() {
         <nav id="mobile-nav" aria-label="Mobile" className="border-t border-border md:hidden">
           <ul className="mx-auto flex max-w-6xl flex-col px-4 py-3">
             {navLinks.map((link) => {
-              const isHash = link.href.includes('#')
               return (
                 <li key={link.label}>
-                  {isHash && isHome ? (
-                    <a
-                      href={link.href.replace('/', '')}
-                      onClick={() => setOpen(false)}
-                      className="block rounded-lg px-3 py-3 font-medium hover:bg-muted"
-                    >
-                      {link.label}
-                    </a>
-                  ) : (
-                    <Link
-                      to={link.href}
-                      onClick={() => setOpen(false)}
-                      className="block rounded-lg px-3 py-3 font-medium hover:bg-muted"
-                    >
-                      {link.label}
-                    </Link>
-                  )}
+                  <Link
+                    to={link.href}
+                    onClick={() => setOpen(false)}
+                    className="block rounded-lg px-3 py-3 font-medium hover:bg-muted"
+                  >
+                    {link.label}
+                  </Link>
                 </li>
               )
             })}

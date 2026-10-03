@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Sparkles } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -19,24 +18,10 @@ export default function Login() {
     setError('');
 
     try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
-      const data = await res.json();
-
-      if (res.ok) {
-        login(data.user, data.token);
-        navigate('/');
-      } else {
-        setError(data.message || 'Failed to login');
-      }
-    } catch (err) {
-      // Mock login fallback if backend isn't running yet
-      console.warn("Backend not reachable. Mocking login...");
-      login({ name: 'Demo User', role: 'student', membershipStatus: 'active' }, 'mock-token-123');
+      await login({ email, password });
       navigate('/');
+    } catch (err) {
+      setError(err.message || 'Failed to login');
     } finally {
       setLoading(false);
     }

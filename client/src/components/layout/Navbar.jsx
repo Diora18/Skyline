@@ -23,7 +23,7 @@ const Navbar = () => {
             
             <div className="hidden sm:ml-8 sm:flex sm:space-x-8">
               <Link to="/" className="border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors">Home</Link>
-              <Link to="/events" className="border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors">Events</Link>
+              <Link to="/event" className="border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors">Events</Link>
               <Link to="/merch" className="border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors">Merch</Link>
               <Link to="/projects" className="border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors">Projects</Link>
             </div>
@@ -61,7 +61,7 @@ const Navbar = () => {
         <div className="sm:hidden border-t border-slate-100 bg-white absolute w-full shadow-lg">
           <div className="pt-2 pb-3 space-y-1">
             <Link to="/" onClick={toggleMenu} className="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-slate-600 hover:bg-slate-50 hover:border-slate-300 hover:text-slate-800">Home</Link>
-            <Link to="/events" onClick={toggleMenu} className="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-slate-600 hover:bg-slate-50 hover:border-slate-300 hover:text-slate-800">Events</Link>
+            <Link to="/event" onClick={toggleMenu} className="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-slate-600 hover:bg-slate-50 hover:border-slate-300 hover:text-slate-800">Events</Link>
             <Link to="/merch" onClick={toggleMenu} className="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-slate-600 hover:bg-slate-50 hover:border-slate-300 hover:text-slate-800">Merch</Link>
           </div>
         </div>

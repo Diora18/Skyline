@@ -46,7 +46,7 @@ export function Hero() {
               <ArrowRight data-icon="inline-end" />
             </a>
             <a
-              href="#events"
+              href="/event"
               className={cn(
                 buttonVariants({ variant: 'outline', size: 'lg' }),
                 'h-12 rounded-full bg-transparent px-6 text-base',

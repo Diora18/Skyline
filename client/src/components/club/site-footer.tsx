@@ -3,7 +3,7 @@ import { buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
 const columns = [
-  { title: 'Club', links: [{ label: 'Events', href: '/#events' }, { label: 'Membership', href: '/#membership' }, { label: 'Team', href: '/#team' }] },
+  { title: 'Club', links: [{ label: 'Events', href: '/event' }, { label: 'Membership', href: '/#membership' }, { label: 'Team', href: '/#team' }] },
   { title: 'Members', links: [{ label: 'Apply now', href: '/login' }, { label: 'Perks', href: '/#perks' }, { label: 'FAQ', href: '/#faq' }] },
   { title: 'Follow', links: [{ label: 'Instagram', href: '#' }, { label: 'Discord', href: '#' }, { label: 'LinkedIn', href: '#' }] },
 ]

@@ -2,9 +2,9 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Sparkles } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 
-const years = ['Freshman', 'Sophomore', 'Junior', 'Senior', 'Graduate'];
+const years = Array.from({ length: 5 }, (_, index) => new Date().getFullYear() + index);
 const majors = ['Computer Science', 'Business', 'Engineering', 'Arts', 'Science', 'Other'];
 
 export default function Register() {
@@ -39,24 +39,18 @@ export default function Register() {
     }
 
     try {
-      const res = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+      await register({
+        name: formData.name,
+        studentId: formData.studentId,
+        email: formData.email,
+        phone: formData.phone,
+        major: formData.major,
+        graduationYear: formData.gradYear,
+        password: formData.password,
       });
-      const data = await res.json();
-
-      if (res.ok) {
-        register(data.user, data.token);
-        navigate('/');
-      } else {
-        setError(data.message || 'Failed to register');
-      }
-    } catch (err) {
-      // Mock fallback if backend isn't running yet
-      console.warn("Backend not reachable. Mocking register...");
-      register({ name: formData.name, role: 'student', membershipStatus: 'none' }, 'mock-token-123');
       navigate('/');
+    } catch (err) {
+      setError(err.message || 'Failed to register');
     } finally {
       setLoading(false);
     }
