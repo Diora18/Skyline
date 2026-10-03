@@ -1,8 +1,8 @@
 import api from './api';
 
 export const orderService = {
-  createOrder: async (items) => {
-    return await api.post('/orders', { items });
+  createOrder: async (productId, variant, quantity) => {
+    return await api.post('/orders', { productId, variant, quantity });
   },
 
   getMyOrders: async () => {
@@ -16,7 +16,7 @@ export const orderService = {
   },
 
   updateOrderStatus: async (id, status) => {
-    return await api.put(`/orders/${id}/status`, { status });
+    return await api.patch(`/orders/${id}/status`, { status });
   },
 };
 

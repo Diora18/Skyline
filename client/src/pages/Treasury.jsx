@@ -1,5 +1,9 @@
 import { useState, useEffect } from 'react';
 import treasuryService from '@/services/treasuryService';
+import eventService from '@/services/eventService';
+import projectService from '@/services/projectService';
+import expenseService from '@/services/expenseService';
+import ticketService from '@/services/ticketService';
 import { DollarSign, ArrowUpRight, ArrowDownRight, Wallet, Receipt, Plus, Loader2, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -8,6 +12,9 @@ export default function Treasury() {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterType, setFilterType] = useState('all');
+  const [eventFinancials, setEventFinancials] = useState([]);
+  const [eventFinancialsLoading, setEventFinancialsLoading] = useState(true);
+  const [eventFinancialsError, setEventFinancialsError] = useState('');
 
   // Manual Transaction Form
   const [showModal, setShowModal] = useState(false);
@@ -36,6 +43,63 @@ export default function Treasury() {
   useEffect(() => {
     fetchData();
   }, [filterType]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const fetchEventFinancials = async () => {
+      setEventFinancialsLoading(true);
+      setEventFinancialsError('');
+      try {
+        const [eventResponse, projectResponse, expenseResponse] = await Promise.all([
+          eventService.getEvents({ limit: 100 }),
+          projectService.getProjects(),
+          expenseService.getAllExpenses({ limit: 1000 }),
+        ]);
+        const events = eventResponse.data.events || [];
+        const projects = projectResponse.data.projects || [];
+        const expenses = expenseResponse.data.expenses || [];
+        const ticketsByEvent = await Promise.all(
+          events.map(async (event) => {
+            const response = await ticketService.getEventTickets(event._id);
+            return [String(event._id), response.data.tickets || []];
+          })
+        );
+        const ticketsByEventId = new Map(ticketsByEvent);
+
+        const summaries = events.map((event) => {
+          const tickets = ticketsByEventId.get(String(event._id)) || [];
+          const income = tickets
+            .filter((ticket) => ticket.status !== 'cancelled')
+            .reduce((total, ticket) => total + (Number(ticket.price) || 0), 0);
+          const projectIds = new Set(
+            projects
+              .filter((project) => String(project.linkedEvent?._id || project.linkedEvent) === String(event._id))
+              .map((project) => String(project._id))
+          );
+          const expensesTotal = expenses
+            .filter((expense) =>
+              expense.status === 'reimbursed' &&
+              expense.linkedProject &&
+              projectIds.has(String(expense.linkedProject._id || expense.linkedProject))
+            )
+            .reduce((total, expense) => total + (Number(expense.amount) || 0), 0);
+
+          return { ...event, income, expenses: expensesTotal };
+        });
+
+        if (!cancelled) setEventFinancials(summaries);
+      } catch (err) {
+        if (!cancelled) setEventFinancialsError(err.message || 'Unable to load event financials.');
+      } finally {
+        if (!cancelled) setEventFinancialsLoading(false);
+      }
+    };
+
+    fetchEventFinancials();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleManualTransaction = async (e) => {
     e.preventDefault();
@@ -116,21 +180,55 @@ export default function Treasury() {
                   <ArrowDownRight className="h-5 w-5" />
                 </div>
               </div>
-              <p className="text-3xl font-extrabold text-foreground mt-3">${summary?.totalExpense?.toFixed(2) || '0.00'}</p>
+              <p className="text-3xl font-extrabold text-foreground mt-3">${summary?.totalExpenses?.toFixed(2) || '0.00'}</p>
               <span className="text-xs text-muted-foreground mt-1 block">Reimbursements & Operations</span>
             </div>
 
             <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Active Members</span>
+                <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Ledger Entries</span>
                 <div className="p-2.5 rounded-2xl bg-accent/20 text-accent-foreground">
                   <Receipt className="h-5 w-5" />
                 </div>
               </div>
-              <p className="text-3xl font-extrabold text-foreground mt-3">{summary?.activeMembersCount || 0}</p>
-              <span className="text-xs text-muted-foreground mt-1 block">Dues Paid Students</span>
+              <p className="text-3xl font-extrabold text-foreground mt-3">{summary?.transactionCount || 0}</p>
+              <span className="text-xs text-muted-foreground mt-1 block">Recorded income and expenses</span>
             </div>
           </div>
+
+          <section className="rounded-3xl border border-border bg-card p-6 shadow-sm space-y-4">
+            <div>
+              <h3 className="text-xl font-extrabold">Event Financial Summary</h3>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Ticket income and reimbursed claims linked to projects for each event. Unlinked manual transactions and merchandise orders are not event-attributed by the existing API.
+              </p>
+            </div>
+            {eventFinancialsLoading ? (
+              <p className="text-sm text-muted-foreground">Loading event financials...</p>
+            ) : eventFinancialsError ? (
+              <p role="alert" className="text-sm text-destructive">{eventFinancialsError}</p>
+            ) : eventFinancials.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No published events available.</p>
+            ) : (
+              <div className="divide-y divide-border">
+                {eventFinancials.map((event) => (
+                  <div key={event._id} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="font-semibold">{event.title}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(event.startDate).toLocaleDateString()} · {event.ticketsSold || 0} tickets sold
+                      </p>
+                    </div>
+                    <div className="flex gap-5 text-sm">
+                      <span className="text-emerald-600">Income ${event.income.toFixed(2)}</span>
+                      <span className="text-destructive">Expense ${event.expenses.toFixed(2)}</span>
+                      <span className="font-bold">Net ${(event.income - event.expenses).toFixed(2)}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
 
           {/* Ledger Table */}
           <div className="rounded-3xl border border-border bg-card p-6 shadow-sm space-y-4">
@@ -217,8 +315,7 @@ export default function Treasury() {
                   <option value="dues">Membership Dues</option>
                   <option value="ticket_sale">Ticket Sale</option>
                   <option value="merch_sale">Merch Sale</option>
-                  <option value="event_supplies">Event Supplies</option>
-                  <option value="food_catering">Food & Catering</option>
+                  <option value="reimbursement">Reimbursement</option>
                   <option value="other">Other Adjustment</option>
                 </select>
               </div>

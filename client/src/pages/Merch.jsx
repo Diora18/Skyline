@@ -28,7 +28,7 @@ export default function Merch() {
     fetchProducts();
   }, []);
 
-  const categories = ['All', 'Apparel', 'Accessories', 'Stationery', 'Gear'];
+  const categories = ['All', 'hoodie', 'tshirt', 'cap', 'sticker', 'other'];
 
   const filteredProducts = products.filter((p) => {
     if (filter === 'All') return true;
@@ -94,8 +94,8 @@ export default function Merch() {
                 <div className="space-y-4">
                   <div className="relative h-52 w-full overflow-hidden rounded-2xl bg-muted">
                     <img
-                      src={product.images?.[0] || 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=800&auto=format&fit=crop'}
-                      alt={product.title}
+                      src={product.image || 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=800&auto=format&fit=crop'}
+                      alt={product.name}
                       className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                       onError={(e) => {
                         e.target.src = 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=800&auto=format&fit=crop';
@@ -112,7 +112,7 @@ export default function Merch() {
                   </div>
 
                   <div>
-                    <h3 className="text-xl font-extrabold group-hover:text-primary transition-colors">{product.title}</h3>
+                    <h3 className="text-xl font-extrabold group-hover:text-primary transition-colors">{product.name}</h3>
                     <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
                       {product.description || 'Premium official Skyline Student Association merchandise.'}
                     </p>
@@ -157,12 +157,13 @@ export default function Merch() {
 function ProductCheckoutModal({ product, onClose, onOrderSuccess }) {
   const { user, token, isMember } = useContext(AuthContext);
   const navigate = useNavigate();
-  const [selectedVariant, setSelectedVariant] = useState(product.variants?.[0] || null);
+  const [selectedVariantIndex, setSelectedVariantIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [createdOrder, setCreatedOrder] = useState(null);
 
+  const selectedVariant = product.variants?.[selectedVariantIndex] || null;
   const availableStock = selectedVariant ? selectedVariant.stock : 0;
   const totalPrice = (product.basePrice * quantity).toFixed(2);
 
@@ -181,14 +182,11 @@ function ProductCheckoutModal({ product, onClose, onOrderSuccess }) {
     setError('');
 
     try {
-      const items = [
-        {
-          productId: product._id,
-          variantSku: selectedVariant.sku,
-          quantity,
-        },
-      ];
-      const res = await orderService.createOrder(items);
+      const res = await orderService.createOrder(
+        product._id,
+        { size: selectedVariant.size, color: selectedVariant.color },
+        quantity
+      );
       setCreatedOrder(res.data.order);
       if (onOrderSuccess) onOrderSuccess();
     } catch (err) {
@@ -215,7 +213,7 @@ function ProductCheckoutModal({ product, onClose, onOrderSuccess }) {
             </div>
             <h3 className="text-2xl font-extrabold">Order Confirmed!</h3>
             <p className="text-sm text-muted-foreground">
-              Thank you for ordering <span className="font-semibold text-foreground">{product.title}</span>.
+              Thank you for ordering <span className="font-semibold text-foreground">{product.name}</span>.
             </p>
 
             <div className="my-6 rounded-2xl border-2 border-dashed border-primary/40 bg-muted/50 p-5 space-y-2 text-left">
@@ -225,7 +223,7 @@ function ProductCheckoutModal({ product, onClose, onOrderSuccess }) {
               </div>
               <div className="flex justify-between text-sm font-extrabold text-foreground pt-1 border-t border-border">
                 <span>Total Amount Paid:</span>
-                <span>${createdOrder.totalAmount?.toFixed(2) || totalPrice}</span>
+                <span>${createdOrder.totalPrice?.toFixed(2) || totalPrice}</span>
               </div>
               <div className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-semibold pt-1">
                 <ShieldCheck className="h-4 w-4" />
@@ -246,7 +244,7 @@ function ProductCheckoutModal({ product, onClose, onOrderSuccess }) {
           <div className="space-y-5">
             <div>
               <span className="text-xs font-bold uppercase tracking-wider text-primary">{product.category}</span>
-              <h2 className="text-2xl font-extrabold mt-1">{product.title}</h2>
+              <h2 className="text-2xl font-extrabold mt-1">{product.name}</h2>
               <p className="text-sm text-muted-foreground mt-1">{product.description}</p>
             </div>
 
@@ -256,17 +254,17 @@ function ProductCheckoutModal({ product, onClose, onOrderSuccess }) {
                 Select Size & Color Variant
               </label>
               <div className="grid gap-2">
-                {product.variants?.map((v) => (
+                {product.variants?.map((v, index) => (
                   <button
-                    key={v.sku}
+                    key={`${v.size}-${v.color}-${index}`}
                     type="button"
                     disabled={v.stock === 0}
                     onClick={() => {
-                      setSelectedVariant(v);
+                      setSelectedVariantIndex(index);
                       setQuantity(1);
                     }}
                     className={`flex items-center justify-between p-3 rounded-2xl border text-sm font-medium transition-all ${
-                      selectedVariant?.sku === v.sku
+                      selectedVariantIndex === index
                         ? 'border-primary bg-primary/10 text-primary font-bold shadow-sm'
                         : v.stock === 0
                         ? 'border-border bg-muted/40 text-muted-foreground opacity-50 cursor-not-allowed'

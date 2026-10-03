@@ -14,7 +14,7 @@ export const projectService = {
   },
 
   updateProject: async (id, projectData) => {
-    return await api.put(`/projects/${id}`, projectData);
+    return await api.patch(`/projects/${id}`, projectData);
   },
 };
 

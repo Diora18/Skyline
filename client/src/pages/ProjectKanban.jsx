@@ -2,6 +2,7 @@ import { useState, useEffect, useContext } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import projectService from '@/services/projectService';
 import taskService from '@/services/taskService';
+import memberService from '@/services/memberService';
 import { AuthContext } from '@/context/AuthContext';
 import { FolderKanban, Plus, ChevronRight, ChevronLeft, Trash2, CheckCircle2, Circle, Clock, AlertCircle, Loader2, User, ArrowLeft, PackageCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -20,6 +21,8 @@ export default function ProjectKanban() {
   const [taskTitle, setTaskTitle] = useState('');
   const [taskDesc, setTaskDesc] = useState('');
   const [taskPriority, setTaskPriority] = useState('medium');
+  const [assignee, setAssignee] = useState('');
+  const [volunteers, setVolunteers] = useState([]);
   const [supplyInput, setSupplyInput] = useState('');
   const [supplies, setSupplies] = useState([]);
   const [creatingTask, setCreatingTask] = useState(false);
@@ -40,6 +43,17 @@ export default function ProjectKanban() {
   useEffect(() => {
     if (id) fetchProjectAndTasks();
   }, [id]);
+
+  useEffect(() => {
+    if (!isOfficer) return;
+    memberService.getMembers({ limit: 100 })
+      .then((response) => {
+        setVolunteers((response.data.members || []).filter((member) => member.role === 'volunteer'));
+      })
+      .catch((err) => {
+        console.error('Failed to load volunteer assignments', err);
+      });
+  }, [isOfficer]);
 
   const handleUpdateStatus = async (taskId, newStatus) => {
     try {
@@ -62,7 +76,7 @@ export default function ProjectKanban() {
 
   const handleAddSupply = () => {
     if (!supplyInput.trim()) return;
-    setSupplies([...supplies, { name: supplyInput.trim(), acquired: false }]);
+    setSupplies([...supplies, supplyInput.trim()]);
     setSupplyInput('');
   };
 
@@ -76,6 +90,7 @@ export default function ProjectKanban() {
         title: taskTitle,
         description: taskDesc,
         project: id,
+        assignee: assignee || null,
         priority: taskPriority,
         supplies,
       });
@@ -83,6 +98,7 @@ export default function ProjectKanban() {
       setTaskTitle('');
       setTaskDesc('');
       setTaskPriority('medium');
+      setAssignee('');
       setSupplies([]);
       fetchProjectAndTasks();
     } catch (err) {
@@ -264,7 +280,20 @@ export default function ProjectKanban() {
                   <option value="low">Low</option>
                   <option value="medium">Medium</option>
                   <option value="high">High</option>
-                  <option value="urgent">Urgent</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">Assign Volunteer</label>
+                <select
+                  value={assignee}
+                  onChange={(e) => setAssignee(e.target.value)}
+                  className="w-full rounded-2xl border border-input bg-background px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  <option value="">Unassigned</option>
+                  {volunteers.map((volunteer) => (
+                    <option key={volunteer._id} value={volunteer._id}>{volunteer.name}</option>
+                  ))}
                 </select>
               </div>
 
@@ -287,7 +316,7 @@ export default function ProjectKanban() {
                   <ul className="mt-2 space-y-1">
                     {supplies.map((s, i) => (
                       <li key={i} className="text-xs text-muted-foreground bg-muted px-3 py-1 rounded-lg flex justify-between">
-                        <span>• {s.name}</span>
+                        <span>• {s}</span>
                         <button type="button" onClick={() => setSupplies(supplies.filter((_, idx) => idx !== i))} className="text-destructive">×</button>
                       </li>
                     ))}
@@ -347,8 +376,8 @@ function TaskCard({ task, onMoveLeft, onMoveRight, onDelete, onMarkDone, canMark
         <div className="bg-muted/50 p-2.5 rounded-xl space-y-1">
           <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">Supplies:</span>
           {task.supplies.map((s, i) => (
-            <span key={i} className="inline-block bg-background px-2 py-0.5 rounded text-[11px] text-foreground font-medium mr-1 mb-1 border border-border">
-              {s.name}
+            <span key={`${s}-${i}`} className="inline-block bg-background px-2 py-0.5 rounded text-[11px] text-foreground font-medium mr-1 mb-1 border border-border">
+            {s}
             </span>
           ))}
         </div>

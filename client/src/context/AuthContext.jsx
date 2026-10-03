@@ -2,10 +2,37 @@ import { createContext, useState, useEffect } from 'react';
 
 export const AuthContext = createContext();
 
+const readApiResponse = async (response) => {
+  const responseText = await response.text();
+  let result = null;
+
+  if (responseText) {
+    try {
+      result = JSON.parse(responseText);
+    } catch {
+      const message = response.status >= 500
+        ? `The Skyline API returned HTTP ${response.status}. Check that the backend is running on port 5000.`
+        : `The Skyline API returned an invalid response (HTTP ${response.status}).`;
+      throw new Error(message);
+    }
+  }
+
+  if (!response.ok) {
+    throw new Error(result?.message || `Request failed with HTTP ${response.status}.`);
+  }
+
+  if (!result) {
+    throw new Error('The Skyline API returned an empty response. Check the backend server.');
+  }
+
+  return result;
+};
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(localStorage.getItem('token') || null);
   const [authLoading, setAuthLoading] = useState(Boolean(token));
+  const [managedEventIds, setManagedEventIds] = useState([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -20,11 +47,7 @@ export const AuthProvider = ({ children }) => {
         const response = await fetch('/api/auth/me', {
           headers: { Authorization: `Bearer ${token}` },
         });
-        const result = await response.json();
-
-        if (!response.ok) {
-          throw new Error(result.message || 'Your session has expired.');
-        }
+        const result = await readApiResponse(response);
 
         if (!cancelled) {
           setUser(result.data.user);
@@ -49,17 +72,53 @@ export const AuthProvider = ({ children }) => {
     };
   }, [token]);
 
-  const authenticate = async (endpoint, payload) => {
-    const response = await fetch(`/api/auth/${endpoint}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-    const result = await response.json();
+  useEffect(() => {
+    let cancelled = false;
 
-    if (!response.ok) {
-      throw new Error(result.message || `Unable to ${endpoint}.`);
+    const loadManagedEvents = async () => {
+      if (!token || !user?._id) {
+        setManagedEventIds([]);
+        return;
+      }
+
+      const response = await fetch('/api/events', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const result = await readApiResponse(response);
+
+      const userId = String(user._id);
+      const assignedIds = (result.data?.events || [])
+        .filter((event) =>
+          String(event.createdBy?._id || event.createdBy || '') === userId ||
+          event.managers?.some((manager) => String(manager?._id || manager) === userId)
+        )
+        .map((event) => String(event._id));
+
+      if (!cancelled) setManagedEventIds(assignedIds);
+    };
+
+    loadManagedEvents().catch((error) => {
+      console.error(error.message || 'Unable to load event assignments.');
+      if (!cancelled) setManagedEventIds([]);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [token, user?._id]);
+
+  const authenticate = async (endpoint, payload) => {
+    let response;
+    try {
+      response = await fetch(`/api/auth/${endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+    } catch {
+      throw new Error('Cannot reach the Skyline API. Start the backend with `npm run dev:server` from the SKYLINE folder.');
     }
+    const result = await readApiResponse(response);
 
     const { token: newToken, user: authenticatedUser } = result.data;
     localStorage.setItem('token', newToken);
@@ -74,6 +133,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('token');
     setToken(null);
     setUser(null);
+    setManagedEventIds([]);
   };
 
   const register = (userData) => authenticate('register', userData);
@@ -84,11 +144,7 @@ export const AuthProvider = ({ children }) => {
     const response = await fetch('/api/auth/me', {
       headers: { Authorization: `Bearer ${token}` },
     });
-    const result = await response.json();
-
-    if (!response.ok) {
-      throw new Error(result.message || 'Unable to refresh your account.');
-    }
+    const result = await readApiResponse(response);
 
     setUser(result.data.user);
     return result.data.user;
@@ -99,14 +155,13 @@ export const AuthProvider = ({ children }) => {
   const isVolunteer = user?.role === 'volunteer';
   const isTreasurer = user?.role === 'treasurer';
   const isOfficer = user?.role === 'officer';
-  const isAdmin = user?.role === 'officer';
-  const isExecutive = user?.role === 'treasurer' || user?.role === 'officer';
-
-  // Permission checkers
-  const canScan = ['volunteer', 'officer'].includes(user?.role);
-  const canAccessTreasury = ['treasurer', 'officer'].includes(user?.role);
-  const canManageMembers = user?.role === 'officer';
-  const canSubmitExpenses = ['volunteer', 'treasurer', 'officer'].includes(user?.role);
+  const isAdmin = isOfficer;
+  const isExecutive = isTreasurer || isOfficer;
+  const isEventManager = managedEventIds.length > 0;
+  const canScan = isVolunteer || isOfficer || isEventManager;
+  const canAccessTreasury = isExecutive;
+  const canManageMembers = isOfficer;
+  const canSubmitExpenses = isVolunteer || isExecutive;
 
   return (
     <AuthContext.Provider value={{
@@ -128,6 +183,8 @@ export const AuthProvider = ({ children }) => {
       canAccessTreasury,
       canManageMembers,
       canSubmitExpenses,
+      managedEventIds,
+      isEventManager,
     }}>
       {children}
     </AuthContext.Provider>

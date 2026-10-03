@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import expenseService from '@/services/expenseService';
-import { Receipt, DollarSign, Image, CheckCircle2, Loader2, AlertCircle, ArrowLeft } from 'lucide-react';
+import projectService from '@/services/projectService';
+import { CheckCircle2, Loader2, AlertCircle, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate, Link } from 'react-router-dom';
 
@@ -11,9 +12,17 @@ export default function ExpenseSubmit() {
   const [category, setCategory] = useState('supplies');
   const [description, setDescription] = useState('');
   const [receiptUrl, setReceiptUrl] = useState('');
+  const [projects, setProjects] = useState([]);
+  const [linkedProject, setLinkedProject] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    projectService.getProjects()
+      .then((response) => setProjects(response.data.projects || []))
+      .catch((err) => setError(err.message || 'Failed to load projects.'));
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -28,6 +37,7 @@ export default function ExpenseSubmit() {
         category,
         description: [title, description].filter(Boolean).join('\n\n'),
         receiptUrl,
+        linkedProject: linkedProject || null,
       });
       setSuccess(true);
     } catch (err) {
@@ -119,6 +129,20 @@ export default function ExpenseSubmit() {
                 onChange={(e) => setDescription(e.target.value)}
                 className="w-full rounded-2xl border border-input bg-background px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none"
               />
+            </div>
+
+            <div>
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">Related Project / Event</label>
+              <select
+                value={linkedProject}
+                onChange={(e) => setLinkedProject(e.target.value)}
+                className="w-full rounded-2xl border border-input bg-background px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                <option value="">Not linked to a project</option>
+                {projects.map((project) => (
+                  <option key={project._id} value={project._id}>{project.title}</option>
+                ))}
+              </select>
             </div>
 
             <div>

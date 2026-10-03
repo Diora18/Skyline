@@ -26,16 +26,16 @@ export default function Orders() {
 
   const getStatusBadge = (status) => {
     switch (status) {
-      case 'fulfilled':
-        return <span className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">Fulfilled</span>;
-      case 'processing':
-        return <span className="bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">Processing</span>;
-      case 'paid':
-        return <span className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">Paid</span>;
+      case 'confirmed':
+        return <span className="bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">Confirmed</span>;
+      case 'ready':
+        return <span className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">Ready for pickup</span>;
+      case 'collected':
+        return <span className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">Collected</span>;
       case 'cancelled':
         return <span className="bg-destructive/10 text-destructive border border-destructive/20 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">Cancelled</span>;
       default:
-        return <span className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">Pending</span>;
+        return <span className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">Placed</span>;
     }
   };
 
@@ -97,33 +97,30 @@ export default function Orders() {
 
                   <div className="flex items-center gap-3">
                     {getStatusBadge(order.status)}
-                    <span className="text-xl font-extrabold text-foreground">${order.totalAmount?.toFixed(2)}</span>
+                    <span className="text-xl font-extrabold text-foreground">${order.totalPrice?.toFixed(2)}</span>
                   </div>
                 </div>
 
                 <div className="divide-y divide-border">
-                  {order.items?.map((item, idx) => (
-                    <div key={idx} className="py-3 flex items-center justify-between">
+                  <div className="py-3 flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className="h-12 w-12 rounded-xl bg-muted overflow-hidden shrink-0">
                           <img
-                            src={item.product?.images?.[0] || 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=800&auto=format&fit=crop'}
-                            alt={item.titleSnapshot}
+                            src={order.product?.image || 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=800&auto=format&fit=crop'}
+                            alt={order.product?.name || 'Merchandise'}
                             className="h-full w-full object-cover"
                             onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=800&auto=format&fit=crop'; }}
                           />
                         </div>
                         <div>
-                          <p className="text-sm font-bold">{item.titleSnapshot || item.product?.title}</p>
+                          <p className="text-sm font-bold">{order.product?.name || 'Unavailable product'}</p>
                           <p className="text-xs text-muted-foreground">
-                            Variant: {item.variantSnapshot?.size ? `Size ${item.variantSnapshot.size}` : ''} {item.variantSnapshot?.color ? `(${item.variantSnapshot.color})` : ''} · Qty: {item.quantity}
+                            Size {order.variant?.size} {order.variant?.color ? `(${order.variant.color})` : ''} · Qty: {order.quantity}
                           </p>
                         </div>
                       </div>
-
-                      <span className="text-sm font-semibold">${((item.priceSnapshot || 0) * item.quantity).toFixed(2)}</span>
+                      <span className="text-sm font-semibold">${order.totalPrice?.toFixed(2)}</span>
                     </div>
-                  ))}
                 </div>
               </div>
             );

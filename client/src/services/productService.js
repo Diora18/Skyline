@@ -16,11 +16,11 @@ export const productService = {
   },
 
   updateProduct: async (id, productData) => {
-    return await api.put(`/products/${id}`, productData);
+    return await api.patch(`/products/${id}`, productData);
   },
 
-  updateStock: async (id, variantSku, stock) => {
-    return await api.put(`/products/${id}/stock`, { variantSku, stock });
+  updateStock: async (id, variantIndex, stock) => {
+    return await api.patch(`/products/${id}/stock`, { variantIndex, stock });
   },
 };
 

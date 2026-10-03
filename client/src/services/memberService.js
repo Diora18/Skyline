@@ -16,7 +16,7 @@ export const memberService = {
   },
 
   updateRole: async (id, role) => {
-    return await api.put(`/members/${id}/role`, { role });
+    return await api.patch(`/members/${id}/role`, { role });
   },
 
   sendReminder: async (id) => {

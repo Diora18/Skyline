@@ -10,7 +10,7 @@ export const taskService = {
   },
 
   updateTask: async (id, taskData) => {
-    return await api.put(`/tasks/${id}`, taskData);
+    return await api.patch(`/tasks/${id}`, taskData);
   },
 
   deleteTask: async (id) => {

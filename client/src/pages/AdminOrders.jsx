@@ -37,7 +37,7 @@ export default function AdminOrders() {
     }
   };
 
-  const statusOptions = ['all', 'pending', 'paid', 'processing', 'fulfilled', 'cancelled'];
+  const statusOptions = ['all', 'placed', 'confirmed', 'ready', 'collected', 'cancelled'];
 
   return (
     <main className="min-h-screen py-12 px-4 md:px-6 max-w-6xl mx-auto">
@@ -103,7 +103,7 @@ export default function AdminOrders() {
                   </div>
 
                   <div className="text-right">
-                    <span className="text-2xl font-extrabold text-foreground">${order.totalAmount?.toFixed(2)}</span>
+                    <span className="text-2xl font-extrabold text-foreground">${order.totalPrice?.toFixed(2)}</span>
                     <p className="text-xs text-muted-foreground">
                       {order.createdAt ? new Date(order.createdAt).toLocaleString() : ''}
                     </p>
@@ -112,59 +112,59 @@ export default function AdminOrders() {
 
                 {/* Items List */}
                 <div className="divide-y divide-border">
-                  {order.items?.map((item, idx) => (
-                    <div key={idx} className="py-2.5 flex items-center justify-between text-sm">
+                  {order.product && (
+                    <div className="py-2.5 flex items-center justify-between text-sm">
                       <div>
-                        <span className="font-bold">{item.titleSnapshot}</span>
+                        <span className="font-bold">{order.product.name}</span>
                         <span className="text-xs text-muted-foreground ml-2">
-                          (Variant: {item.variantSnapshot?.size ? `Size ${item.variantSnapshot.size}` : ''} {item.variantSnapshot?.color ? `[${item.variantSnapshot.color}]` : ''} · Qty: {item.quantity})
+                          (Variant: {order.variant?.size ? `Size ${order.variant.size}` : ''} {order.variant?.color ? `[${order.variant.color}]` : ''} · Qty: {order.quantity})
                         </span>
                       </div>
-                      <span className="font-semibold">${((item.priceSnapshot || 0) * item.quantity).toFixed(2)}</span>
+                      <span className="font-semibold">${order.totalPrice?.toFixed(2)}</span>
                     </div>
-                  ))}
+                  )}
                 </div>
 
                 {/* Admin Pipeline Action Controls */}
                 <div className="pt-2 flex flex-wrap items-center justify-end gap-2 border-t border-border">
                   <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground mr-auto">Advance Pipeline:</span>
 
-                  {order.status !== 'paid' && order.status !== 'fulfilled' && (
+                  {order.status === 'placed' && (
                     <Button
                       size="sm"
                       variant="outline"
                       disabled={isUpdating}
-                      onClick={() => handleStatusChange(order._id, 'paid')}
+                      onClick={() => handleStatusChange(order._id, 'confirmed')}
                       className="rounded-full text-xs"
                     >
-                      Mark as Paid
+                      Confirm Order
                     </Button>
                   )}
 
-                  {order.status !== 'processing' && order.status !== 'fulfilled' && (
+                  {order.status === 'confirmed' && (
                     <Button
                       size="sm"
                       variant="outline"
                       disabled={isUpdating}
-                      onClick={() => handleStatusChange(order._id, 'processing')}
+                      onClick={() => handleStatusChange(order._id, 'ready')}
                       className="rounded-full text-xs"
                     >
-                      Mark Processing
+                      Ready for Pickup
                     </Button>
                   )}
 
-                  {order.status !== 'fulfilled' && (
+                  {order.status === 'ready' && (
                     <Button
                       size="sm"
                       disabled={isUpdating}
-                      onClick={() => handleStatusChange(order._id, 'fulfilled')}
+                      onClick={() => handleStatusChange(order._id, 'collected')}
                       className="rounded-full text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
                     >
-                      Fulfill Order
+                      Mark Collected
                     </Button>
                   )}
 
-                  {order.status !== 'cancelled' && order.status !== 'fulfilled' && (
+                  {['placed', 'confirmed', 'ready'].includes(order.status) && (
                     <Button
                       size="sm"
                       variant="ghost"

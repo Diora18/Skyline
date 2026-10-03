@@ -16,7 +16,7 @@ export const eventService = {
   },
 
   updateEvent: async (id, eventData) => {
-    return await api.put(`/events/${id}`, eventData);
+    return await api.patch(`/events/${id}`, eventData);
   },
 
   deleteEvent: async (id) => {
@@ -24,7 +24,7 @@ export const eventService = {
   },
 
   manageManagers: async (id, action, userId) => {
-    return await api.put(`/events/${id}/managers`, { action, userId });
+    return await api.patch(`/events/${id}/managers`, { action, userId });
   },
 };
 

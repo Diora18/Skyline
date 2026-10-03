@@ -2,41 +2,36 @@
 
 Last audited: 2026-10-03
 
-## Repository and documentation
+## Audit scope
 
-- The active application is a React/Vite client in `client/` and an Express/MongoDB server in `server/`.
-- The requested files `context/01_PROJECT_OVERVIEW.md` and `context/04_USER_ROLES_AND_PERMISSIONS.md` are not present. The current references are `context/00_PROJECT_OVERVIEW.md`, `context/01_PROJECT_RULES.md`, `context/03_API_ENDPOINTS.md`, and `context/04_PAGES_AND_COMPONENTS.md`.
-- The four global roles are `student`, `volunteer`, `treasurer`, and `officer`. Membership status is separate from role and controls member pricing and merch checkout.
-- No backend files, API contracts, models, routes, middleware, or seed data were changed.
-- Added a workspace-level `package.json` so npm commands from the provided `SKYLINE` folder resolve to the nested Skyline application instead of the unrelated `C:\Users\vedan` Svelte/Vite project.
+- Audited the active client, relevant service wrappers, API route/controller/model contracts, and project context documents.
+- The current docs are `context/00_PROJECT_OVERVIEW.md`, `context/01_PROJECT_RULES.md`, `context/03_API_ENDPOINTS.md`, and `context/04_PAGES_AND_COMPONENTS.md`; the alternate overview/permission filenames from the original task are absent.
+- **No backend files, routes, controllers, models, middleware, seed data, endpoints, or API contracts were modified.**
 
-## Workspace commands
+## Frontend fixes
 
-Run these from the top-level `SKYLINE` folder:
+- Added event create, edit, and delete controls for officers; event managers and creators can edit their own assigned event. Officers can assign/remove managers in the UI and authorized users can load attendee/check-in lists.
+- Role context now discovers current published event assignments and exposes scoped event-manager scanner access.
+- Corrected frontend HTTP methods to use existing PATCH routes for event, manager, member-role, order-status, product, project, task, and expense updates.
+- Corrected merch catalogue fields and category filters to match Product (`name`, `image`, backend category enum); order checkout now sends the existing `{ productId, variant: { size, color }, quantity }` contract.
+- Corrected order display/status actions to match the existing single-product order shape and `placed → confirmed → ready → collected` statuses.
+- Corrected inventory updates to submit a variant index (not nonexistent SKU) and PATCH the existing stock endpoint.
+- Corrected project progress to consume server-provided `totalTasks`, `doneTasks`, and `progress`; task creation now submits string supplies and allows volunteer assignment.
+- Expense submission can associate a claim with an existing project/event workspace. The treasury dashboard reads `totalExpenses`, shows actual ledger-entry count rather than an unavailable active-member count, and calculates per-event ticket income plus reimbursed project-linked expenses from existing APIs.
 
-- `npm run dev` — start the frontend Vite server.
-- `npm run dev:server` — start the backend Express server.
-- `npm run build` / `npm run lint` — run the client build or lint.
-- `npm run seed` — run the existing backend seeder. **This drops all collections in the configured MongoDB database before inserting demo data.**
+## Existing backend blockers (left unchanged by request)
 
-## Role-based frontend status
+- `server/controllers/eventController.js` uses `User.findById` in manager assignment without importing `User`. As a result, the new Add/Remove Event Manager controls will receive a server error until that backend reference is corrected.
+- Event-manager permissions for linked project task create/update/delete are not consistently supported by the existing task routes/controller. The documented event-manager project-task scope cannot be made functional solely in the frontend without changing backend authorization.
+- Existing event-finance APIs do not provide a direct event ID for manual transactions or merchandise orders. Event financial summaries therefore include ticket revenue and reimbursed claims linked through the event's project; unrelated manual income/expenses and merch revenue cannot be reliably attributed to an event without backend/API changes.
+- The treasury summary endpoint does not return an active-member count. That card now displays the existing `transactionCount`; no unsupported member count is fabricated.
 
-| Role | Frontend access and controls |
-| --- | --- |
-| Student | Public events, merch browsing, announcements, and other public pages; authenticated tickets, orders, and projects. Active membership is required for merch checkout. No administrative controls. |
-| Volunteer | Student/member functionality, scanner access, submitting and viewing their expense claims, and marking only their own assigned project tasks done. |
-| Treasurer | Student/member functionality, treasury and expense-review pages, and submitting/viewing their own expense claims. Scanner access is not shown because the role matrix reserves it for Volunteers and Officers. |
-| Officer | Shared functionality plus member administration, order fulfillment, inventory, announcement publishing/deletion, project/task management, scanner, treasury, and expense review. |
+## Verification
 
-Project routes now require authentication. Restricted pages are guarded at the route level, with matching role-specific navigation. A personal expense-claims page uses the existing `/api/expenses/my` endpoint.
-
-The expense submission and review UI now follows existing backend fields, category/status values, and PATCH review/reimbursement routes. Public merch browsing remains available; checkout directs users to sign in or activate/renew membership when required.
-
-## Validation
-
-- `npm run build` in `client/`: passed. Vite reported the existing missing `./.svelte-kit/tsconfig.json` base-config warning and a large-bundle advisory.
-- `npm run lint` in `client/`: passed with existing Oxlint warnings; no lint failures.
-- From the workspace root, `npm run build` and `npm run lint` both resolve to the client; `npm run dev -- --version` resolves to the local Vite 5.4.21 binary.
-- Runtime checks: frontend returned HTTP 200, `/api/health` returned HTTP 200, and `/api/events` returned HTTP 200. A local MongoDB listener is present on port 27017.
-- Changed frontend files were checked with the VS Code Problems tool: no errors found.
-- Role separation was checked against the route guards, navigation, and action visibility in the UI. No live role-account/browser integration test suite is present in the client package.
+- `npm run build` in `client/`: passed after the changes. Existing Vite warnings remain for the unrelated parent Svelte tsconfig and large bundle size.
+- `npx tsc --noEmit` in `client/`: passed.
+- `npm run lint` in `client/`: passed with existing warnings; no lint failures.
+- Registration failure was traced to the API server not running: Vite proxied `/api/auth/register` to port 5000 and received an empty HTTP 500 response, which caused the previous JSON parsing error.
+- Improved the auth response handling to report empty, invalid, and unreachable API responses clearly. Started the existing backend without changing its code; `/api/health` and the frontend were both reachable.
+- Verified a valid registration through the frontend proxy returned HTTP 201. The temporary test account was deleted after verification.
+- Start both processes for local development: `npm run dev` and `npm run dev:server` from the workspace root.

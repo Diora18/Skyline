@@ -93,9 +93,9 @@ export default function Projects() {
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mt-8">
           {projects.map((project) => {
             const deadlineDate = project.deadline ? new Date(project.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Flexible';
-            const tasksCount = project.tasks?.length || 0;
-            const completedTasks = project.tasks?.filter((t) => t.status === 'done').length || 0;
-            const progressPercent = tasksCount > 0 ? Math.round((completedTasks / tasksCount) * 100) : 0;
+            const tasksCount = project.totalTasks || 0;
+            const completedTasks = project.doneTasks || 0;
+            const progressPercent = project.progress || 0;
 
             return (
               <div
