@@ -10,7 +10,7 @@ const userSchema = new mongoose.Schema({
   major: { type: String, default: '' },
   graduationYear: { type: Number },
   profileImage: { type: String, default: '' },
-  role: { type: String, enum: ['student', 'volunteer', 'treasurer', 'officer'], default: 'student' },
+  role: { type: String, enum: ['student', 'treasurer', 'officer'], default: 'student' },
   membershipStatus: { type: String, enum: ['none', 'active', 'expired'], default: 'none' },
   membershipPaidAt: { type: Date, default: null },
   membershipExpiresAt: { type: Date, default: null },

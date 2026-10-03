@@ -1,7 +1,9 @@
 /**
  * Role-based authorization middleware factory
- * @param  {...string} allowedRoles Roles permitted to access the route ('student', 'volunteer', 'treasurer', 'officer')
+ * @param  {...string} allowedRoles Roles permitted to access the route ('student', 'treasurer', 'officer')
  */
+const EventVolunteer = require('../models/EventVolunteer');
+
 const roleCheck = (...allowedRoles) => {
   return (req, res, next) => {
     if (!req.user) {
@@ -44,7 +46,18 @@ const canManageEvent = (event, userId) => {
   return false;
 };
 
+const isApprovedEventVolunteer = async (eventId, userId) => {
+  if (!eventId || !userId) return false;
+  const application = await EventVolunteer.exists({
+    event: eventId,
+    user: userId,
+    status: 'approved',
+  });
+  return Boolean(application);
+};
+
 module.exports = {
   roleCheck,
   canManageEvent,
+  isApprovedEventVolunteer,
 };

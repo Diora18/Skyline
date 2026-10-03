@@ -1,6 +1,5 @@
 const Announcement = require('../models/Announcement');
 
-// GET /api/announcements
 exports.getAnnouncements = async (req, res) => {
   try {
     const { category, page = 1, limit = 20 } = req.query;
@@ -13,7 +12,6 @@ exports.getAnnouncements = async (req, res) => {
     const pageNum = parseInt(page, 10);
     const limitNum = parseInt(limit, 10);
     const skip = (pageNum - 1) * limitNum;
-
     const total = await Announcement.countDocuments(query);
     const announcements = await Announcement.find(query)
       .populate('postedBy', 'name role')

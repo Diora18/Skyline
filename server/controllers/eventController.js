@@ -1,5 +1,6 @@
 const Event = require('../models/Event');
 const Project = require('../models/Project');
+const User = require('../models/User');
 const { canManageEvent } = require('../middleware/roleCheck');
 
 // GET /api/events
@@ -13,11 +14,21 @@ exports.getEvents = async (req, res) => {
       query.category = category;
     }
 
-    // Filter by status (default to published for public unless officer requests otherwise)
+    // Managers need to see every status for events assigned to them.
     if (status) {
       query.status = status;
     } else {
-      query.status = 'published';
+      if (req.user?.role === 'officer') {
+        query.status = { $in: ['published', 'draft', 'cancelled', 'completed'] };
+      } else if (req.user) {
+        query.$or = [
+          { status: 'published' },
+          { managers: req.user._id },
+          { createdBy: req.user._id },
+        ];
+      } else {
+        query.status = 'published';
+      }
     }
 
     const pageNum = parseInt(page, 10);
@@ -28,6 +39,7 @@ exports.getEvents = async (req, res) => {
     const events = await Event.find(query)
       .populate('createdBy', 'name')
       .populate('managers', 'name email role')
+      .populate('linkedProject', 'title status')
       .sort({ [sort]: 1 })
       .skip(skip)
       .limit(limitNum);
@@ -97,7 +109,6 @@ exports.createEvent = async (req, res) => {
       nonMemberPrice = 0,
       capacity = null,
       status = 'published',
-      createLinkedProject = false,
     } = req.body;
 
     if (!title || !category || !venue || !startDate || !endDate) {
@@ -125,7 +136,8 @@ exports.createEvent = async (req, res) => {
       managers: [],
     });
 
-    if (createLinkedProject) {
+    // Every event gets a task board so managers can assign event-specific work.
+    {
       const project = await Project.create({
         title: `${title} - Operations & Logistics`,
         description: `Planning and task board for ${title}`,

@@ -1,5 +1,20 @@
 const Task = require('../models/Task');
 const Project = require('../models/Project');
+const Event = require('../models/Event');
+const EventVolunteer = require('../models/EventVolunteer');
+const { canManageEvent, isApprovedEventVolunteer } = require('../middleware/roleCheck');
+
+const getProjectAccess = async (project, user) => {
+  if (user.role === 'officer') return { manager: true, volunteer: false };
+  if (!project.linkedEvent) return { manager: false, volunteer: false };
+  const event = await Event.findById(project.linkedEvent?._id || project.linkedEvent);
+  if (!event) return { manager: false, volunteer: false };
+  return {
+    manager: canManageEvent(event, user._id),
+    volunteer: await isApprovedEventVolunteer(event._id, user._id),
+    event,
+  };
+};
 
 // POST /api/tasks (Officer or assigned team)
 exports.createTask = async (req, res) => {
@@ -21,6 +36,17 @@ exports.createTask = async (req, res) => {
         data: null,
         message: 'Project not found',
       });
+    }
+
+    const access = await getProjectAccess(targetProject, req.user);
+    if (!access.manager) {
+      return res.status(403).json({ success: false, data: null, message: 'Only the event manager or an officer can create tasks.' });
+    }
+    if (assignee) {
+      const approved = await EventVolunteer.exists({ event: targetProject.linkedEvent, user: assignee, status: 'approved' });
+      if (!approved) {
+        return res.status(400).json({ success: false, data: null, message: 'Tasks can only be assigned to approved volunteers for this event.' });
+      }
     }
 
     const task = await Task.create({
@@ -63,7 +89,13 @@ exports.updateTask = async (req, res) => {
       });
     }
 
-    const isOfficer = req.user.role === 'officer';
+    const project = await Project.findById(task.project);
+    const access = await getProjectAccess(project, req.user);
+    if (!access.manager && !access.volunteer) {
+      return res.status(403).json({ success: false, data: null, message: 'You do not have access to this event task.' });
+    }
+
+    const isOfficer = access.manager;
     const isAssignedVolunteer =
       task.assignee && task.assignee.toString() === req.user._id.toString();
 
@@ -91,6 +123,12 @@ exports.updateTask = async (req, res) => {
     } else {
       // Officers have full editing permissions
       const allowedUpdates = ['title', 'description', 'assignee', 'status', 'priority', 'dueDate', 'supplies'];
+      if (req.body.assignee) {
+        const approved = await EventVolunteer.exists({ event: project.linkedEvent, user: req.body.assignee, status: 'approved' });
+        if (!approved) {
+          return res.status(400).json({ success: false, data: null, message: 'Tasks can only be assigned to approved volunteers for this event.' });
+        }
+      }
       allowedUpdates.forEach((field) => {
         if (req.body[field] !== undefined) {
           task[field] = req.body[field];
@@ -125,6 +163,12 @@ exports.deleteTask = async (req, res) => {
         data: null,
         message: 'Task not found',
       });
+    }
+
+    const project = await Project.findById(task.project);
+    const access = await getProjectAccess(project, req.user);
+    if (!access.manager) {
+      return res.status(403).json({ success: false, data: null, message: 'Only the event manager or an officer can delete tasks.' });
     }
 
     await Task.findByIdAndDelete(req.params.id);

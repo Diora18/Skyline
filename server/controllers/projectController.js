@@ -1,10 +1,43 @@
 const Project = require('../models/Project');
 const Task = require('../models/Task');
+const EventVolunteer = require('../models/EventVolunteer');
+const Event = require('../models/Event');
+const { canManageEvent, isApprovedEventVolunteer } = require('../middleware/roleCheck');
+
+const canAccessProject = async (project, user) => {
+  if (!project || !user) return false;
+  if (user.role === 'officer') return true;
+  if (!project.linkedEvent) return project.createdBy?._id?.toString() === user._id.toString();
+  const event = project.linkedEvent._id ? project.linkedEvent : await Event.findById(project.linkedEvent);
+  return canManageEvent(event, user._id) || isApprovedEventVolunteer(event._id, user._id);
+};
 
 // GET /api/projects
 exports.getProjects = async (req, res) => {
   try {
-    const projects = await Project.find()
+    let projectQuery = {};
+    if (req.user.role !== 'officer') {
+      const [managedEventIds, approvedEventIds, assignedProjectIds] = await Promise.all([
+        Event.find({
+          $or: [{ createdBy: req.user._id }, { managers: req.user._id }],
+        }).distinct('_id'),
+        EventVolunteer.find({
+          user: req.user._id,
+          status: 'approved',
+        }).distinct('event'),
+        Task.find({ assignee: req.user._id }).distinct('project'),
+      ]);
+
+      projectQuery = {
+        $or: [
+          { createdBy: req.user._id },
+          { linkedEvent: { $in: [...managedEventIds, ...approvedEventIds] } },
+          { _id: { $in: assignedProjectIds } },
+        ],
+      };
+    }
+
+    const projects = await Project.find(projectQuery)
       .populate('createdBy', 'name email')
       .populate('linkedEvent', 'title startDate')
       .sort({ createdAt: -1 });
@@ -42,7 +75,7 @@ exports.getProjectById = async (req, res) => {
   try {
     const project = await Project.findById(req.params.id)
       .populate('createdBy', 'name email')
-      .populate('linkedEvent', 'title startDate venue');
+      .populate('linkedEvent', 'title startDate venue managers createdBy');
 
     if (!project) {
       return res.status(404).json({
@@ -52,6 +85,10 @@ exports.getProjectById = async (req, res) => {
       });
     }
 
+    if (!await canAccessProject(project, req.user)) {
+      return res.status(403).json({ success: false, data: null, message: 'Forbidden: You do not have access to this project.' });
+    }
+
     const tasks = await Task.find({ project: project._id })
       .populate('assignee', 'name email role studentId')
       .sort({ createdAt: 1 });
@@ -59,6 +96,12 @@ exports.getProjectById = async (req, res) => {
     const totalTasks = tasks.length;
     const doneTasks = tasks.filter(t => t.status === 'done').length;
     const progress = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
+    const eventId = project.linkedEvent?._id;
+    const eligibleVolunteers = eventId
+      ? await EventVolunteer.find({ event: eventId, status: 'approved' })
+        .populate('user', 'name email role studentId')
+        .then((applications) => applications.map((application) => application.user))
+      : [];
 
     res.status(200).json({
       success: true,
@@ -69,6 +112,10 @@ exports.getProjectById = async (req, res) => {
           totalTasks,
           doneTasks,
           progress,
+          eligibleVolunteers,
+          canManage: req.user.role === 'officer' || await canAccessProject(project, req.user) && (
+            req.user.role === 'officer' || canManageEvent(project.linkedEvent, req.user._id)
+          ),
         },
       },
       message: 'Project details and task board fetched',

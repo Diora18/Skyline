@@ -2,7 +2,7 @@ const Ticket = require('../models/Ticket');
 const Event = require('../models/Event');
 const Transaction = require('../models/Transaction');
 const { generateTicketCode } = require('../utils/generateCode');
-const { canManageEvent } = require('../middleware/roleCheck');
+const { canManageEvent, isApprovedEventVolunteer } = require('../middleware/roleCheck');
 
 // POST /api/tickets (Purchase ticket)
 exports.purchaseTicket = async (req, res) => {
@@ -145,9 +145,10 @@ exports.getEventTickets = async (req, res) => {
       });
     }
 
-    // Permission check: Volunteer, Treasurer, Officer, OR Event Manager for this event
-    const isAuthorized = ['officer', 'treasurer', 'volunteer'].includes(req.user.role) ||
-      canManageEvent(event, req.user._id);
+    // Permission check: Treasurer, Officer, approved event volunteer, OR event manager
+    const isAuthorized = ['officer', 'treasurer'].includes(req.user.role) ||
+      canManageEvent(event, req.user._id) ||
+      await isApprovedEventVolunteer(event._id, req.user._id);
 
     if (!isAuthorized) {
       return res.status(403).json({
@@ -187,12 +188,20 @@ exports.getEventTickets = async (req, res) => {
 // POST /api/tickets/scan (Door Check-In Scanner)
 exports.scanTicket = async (req, res) => {
   try {
-    const { ticketCode } = req.body;
+    const { ticketCode, eventId } = req.body;
     if (!ticketCode) {
       return res.status(400).json({
         success: false,
         data: null,
         message: 'ticketCode is required to verify admission',
+      });
+    }
+
+    if (req.user.role !== 'officer' && !eventId) {
+      return res.status(400).json({
+        success: false,
+        data: null,
+        message: 'An event must be selected before scanning a ticket.',
       });
     }
 
@@ -208,9 +217,18 @@ exports.scanTicket = async (req, res) => {
       });
     }
 
-    // Permission check: Volunteer, Officer, OR Event Manager for this ticket's event
-    const isAuthorized = ['officer', 'volunteer'].includes(req.user.role) ||
-      canManageEvent(ticket.event, req.user._id);
+    if (eventId && ticket.event._id.toString() !== eventId.toString()) {
+      return res.status(403).json({
+        success: false,
+        data: null,
+        message: 'This ticket belongs to a different event.',
+      });
+    }
+
+    // Permission check: Officer, approved event volunteer, OR event manager
+    const isAuthorized = req.user.role === 'officer' ||
+      canManageEvent(ticket.event, req.user._id) ||
+      await isApprovedEventVolunteer(ticket.event._id, req.user._id);
 
     if (!isAuthorized) {
       return res.status(403).json({

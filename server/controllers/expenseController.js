@@ -1,10 +1,12 @@
 const Expense = require('../models/Expense');
 const Transaction = require('../models/Transaction');
+const Event = require('../models/Event');
+const { canManageEvent, isApprovedEventVolunteer } = require('../middleware/roleCheck');
 
-// POST /api/expenses (Volunteer, Treasurer, Officer)
+// POST /api/expenses (Approved event volunteer, Treasurer, Officer)
 exports.submitExpense = async (req, res) => {
   try {
-    const { amount, category, description, linkedProject, receiptUrl } = req.body;
+    const { amount, category, description, eventId, linkedProject, receiptUrl } = req.body;
 
     if (!amount || !category || !description) {
       return res.status(400).json({
@@ -14,11 +16,35 @@ exports.submitExpense = async (req, res) => {
       });
     }
 
+    let event = null;
+    if (eventId) {
+      event = await Event.findById(eventId);
+      if (!event) {
+        return res.status(404).json({
+          success: false,
+          data: null,
+          message: 'Event not found',
+        });
+      }
+    }
+
+    const isStaff = ['treasurer', 'officer'].includes(req.user.role);
+    const isEventManager = event && canManageEvent(event, req.user._id);
+    const isApprovedVolunteer = event && await isApprovedEventVolunteer(event._id, req.user._id);
+    if (!isStaff && !isEventManager && !isApprovedVolunteer) {
+      return res.status(403).json({
+        success: false,
+        data: null,
+        message: 'An approved volunteer assignment for the event is required to submit this expense.',
+      });
+    }
+
     const expense = await Expense.create({
       submittedBy: req.user._id,
       amount: Math.abs(Number(amount)),
       category,
       description: description.trim(),
+      event: event ? event._id : null,
       linkedProject: linkedProject || null,
       receiptUrl: receiptUrl || '',
       status: 'submitted',
@@ -45,6 +71,7 @@ exports.getMyExpenses = async (req, res) => {
   try {
     const expenses = await Expense.find({ submittedBy: req.user._id })
       .populate('linkedProject', 'title')
+      .populate('event', 'title startDate venue')
       .populate('reviewedBy', 'name role')
       .sort({ createdAt: -1 });
 
@@ -80,6 +107,7 @@ exports.getAllExpenses = async (req, res) => {
     const expenses = await Expense.find(query)
       .populate('submittedBy', 'name studentId email role')
       .populate('linkedProject', 'title')
+      .populate('event', 'title startDate venue')
       .populate('reviewedBy', 'name role')
       .sort({ createdAt: -1 })
       .skip(skip)

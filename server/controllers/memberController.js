@@ -134,7 +134,7 @@ exports.payDues = async (req, res) => {
 exports.updateRole = async (req, res) => {
   try {
     const { role } = req.body;
-    const validRoles = ['student', 'volunteer', 'treasurer', 'officer'];
+    const validRoles = ['student', 'treasurer', 'officer'];
 
     if (!validRoles.includes(role)) {
       return res.status(400).json({

@@ -1,6 +1,4 @@
-/**
- * Code generation utilities for tickets and orders
- */
+
 
 const generateTicketCode = () => {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';

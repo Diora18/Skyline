@@ -16,6 +16,7 @@ const bcrypt = require('bcryptjs');
 // ── Models ──────────────────────────────────────
 const User         = require('./models/User');
 const Event        = require('./models/Event');
+const EventVolunteer = require('./models/EventVolunteer');
 const Ticket       = require('./models/Ticket');
 const Product      = require('./models/Product');
 const Order        = require('./models/Order');
@@ -55,9 +56,9 @@ async function seed() {
     { name: 'Jordan Lee',       email: 'vp@skyline.edu',        studentId: 'SKY-2024-003', role: 'officer',   membershipStatus: 'active', major: 'Marketing',          graduationYear: 2027, phone: '555-0003', membershipPaidAt: ago(150), membershipExpiresAt: ahead(215) },
     // Treasurer (1)
     { name: 'Aisha Khan',       email: 'treasurer@skyline.edu', studentId: 'SKY-2024-004', role: 'treasurer', membershipStatus: 'active', major: 'Finance',            graduationYear: 2026, phone: '555-0004', membershipPaidAt: ago(170), membershipExpiresAt: ahead(195) },
-    // Volunteers (2)
-    { name: 'Carlos Rivera',    email: 'carlos@skyline.edu',    studentId: 'SKY-2024-005', role: 'volunteer', membershipStatus: 'active', major: 'Engineering',        graduationYear: 2027, phone: '555-0005', membershipPaidAt: ago(120), membershipExpiresAt: ahead(245) },
-    { name: 'Mei Chen',         email: 'mei@skyline.edu',       studentId: 'SKY-2024-006', role: 'volunteer', membershipStatus: 'active', major: 'Computer Science',   graduationYear: 2027, phone: '555-0006', membershipPaidAt: ago(100), membershipExpiresAt: ahead(265) },
+    // Active members who can apply to volunteer for individual events (2)
+    { name: 'Carlos Rivera',    email: 'carlos@skyline.edu',    studentId: 'SKY-2024-005', role: 'student',   membershipStatus: 'active', major: 'Engineering',        graduationYear: 2027, phone: '555-0005', membershipPaidAt: ago(120), membershipExpiresAt: ahead(245) },
+    { name: 'Mei Chen',         email: 'mei@skyline.edu',       studentId: 'SKY-2024-006', role: 'student',   membershipStatus: 'active', major: 'Computer Science',   graduationYear: 2027, phone: '555-0006', membershipPaidAt: ago(100), membershipExpiresAt: ahead(265) },
     // Active members (2)
     { name: 'David Okafor',     email: 'david@skyline.edu',     studentId: 'SKY-2024-007', role: 'student',   membershipStatus: 'active', major: 'Biology',            graduationYear: 2028, phone: '555-0007', membershipPaidAt: ago(90),  membershipExpiresAt: ahead(275) },
     { name: 'Sofia Martinez',   email: 'sofia@skyline.edu',     studentId: 'SKY-2024-008', role: 'student',   membershipStatus: 'active', major: 'Psychology',         graduationYear: 2028, phone: '555-0008', membershipPaidAt: ago(60),  membershipExpiresAt: ahead(305) },
@@ -157,6 +158,25 @@ async function seed() {
   ev.hackathon   = events[1];
   ev.alumni      = events[2];
   ev.orientation = events[3];
+
+  await EventVolunteer.insertMany([
+    {
+      event: ev.gala._id,
+      user: u.carlos._id,
+      status: 'approved',
+      responsibilities: ['Registration desk', 'Ticket scanning'],
+      approvedAt: ago(5),
+      approvedBy: u.president._id,
+    },
+    {
+      event: ev.hackathon._id,
+      user: u.mei._id,
+      status: 'approved',
+      responsibilities: ['Team check-in', 'Room support'],
+      approvedAt: ago(4),
+      approvedBy: u.president._id,
+    },
+  ]);
 
   // ═══════════════════════════════════════════════
   //  3. TICKETS  (24 records)
@@ -561,7 +581,7 @@ async function seed() {
   console.log('     admin@skyline.edu      (officer)');
   console.log('     president@skyline.edu  (officer)');
   console.log('     treasurer@skyline.edu  (treasurer)');
-  console.log('     carlos@skyline.edu     (volunteer)');
+  console.log('     carlos@skyline.edu     (student; approved gala volunteer)');
   console.log('     david@skyline.edu      (student/active)');
   console.log('     alex@skyline.edu       (student/none)');
   console.log('══════════════════════════════════════════\n');
