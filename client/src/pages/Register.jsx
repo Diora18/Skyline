@@ -98,7 +98,7 @@ export default function Register() {
               </div>
               <div className="flex flex-col gap-2">
                 <label htmlFor="studentId" className="text-sm font-semibold">Student ID</label>
-                <input id="studentId" name="studentId" required placeholder="12345678" inputMode="numeric" value={formData.studentId} onChange={handleChange} className="h-11 rounded-xl border border-input bg-background px-3 outline-none placeholder:text-muted-foreground/70 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30" />
+                <input id="studentId" name="studentId" required placeholder="A12345678" pattern="[A-Za-z0-9]+" title="Student ID may contain letters and numbers only" value={formData.studentId} onChange={handleChange} className="h-11 rounded-xl border border-input bg-background px-3 outline-none placeholder:text-muted-foreground/70 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30" />
               </div>
               <div className="flex flex-col gap-2">
                 <label htmlFor="email" className="text-sm font-semibold">University Email</label>
@@ -106,7 +106,7 @@ export default function Register() {
               </div>
               <div className="flex flex-col gap-2">
                 <label htmlFor="phone" className="text-sm font-semibold">Phone Number</label>
-                <input id="phone" name="phone" type="tel" placeholder="(555) 123-4567" value={formData.phone} onChange={handleChange} className="h-11 rounded-xl border border-input bg-background px-3 outline-none placeholder:text-muted-foreground/70 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30" />
+                <input id="phone" name="phone" type="tel" inputMode="tel" pattern="[+0-9() .-]{7,25}" title="Enter a valid phone number with 7 to 15 digits" placeholder="(555) 123-4567" value={formData.phone} onChange={handleChange} className="h-11 rounded-xl border border-input bg-background px-3 outline-none placeholder:text-muted-foreground/70 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30" />
               </div>
               <div className="flex flex-col gap-2">
                 <label htmlFor="major" className="text-sm font-semibold">Major</label>
@@ -124,7 +124,7 @@ export default function Register() {
               </div>
               <div className="flex flex-col gap-2">
                 <label htmlFor="password" className="text-sm font-semibold">Password</label>
-                <input id="password" name="password" type="password" required placeholder="••••••••" value={formData.password} onChange={handleChange} className="h-11 rounded-xl border border-input bg-background px-3 outline-none placeholder:text-muted-foreground/70 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30" />
+                <input id="password" name="password" type="password" required minLength={8} maxLength={128} placeholder="••••••••" value={formData.password} onChange={handleChange} className="h-11 rounded-xl border border-input bg-background px-3 outline-none placeholder:text-muted-foreground/70 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30" />
               </div>
               <div className="flex flex-col gap-2">
                 <label htmlFor="confirmPassword" className="text-sm font-semibold">Confirm Password</label>

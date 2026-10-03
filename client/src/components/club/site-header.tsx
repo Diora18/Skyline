@@ -7,8 +7,8 @@ import { useAuth } from '@/hooks/useAuth'
 
 const navLinks = [
   { href: '/event', label: 'Events' },
-  { href: '/#perks', label: 'Perks' },
-  { href: '/#team', label: 'Team' },
+  { href: '/perks', label: 'Perks' },
+  { href: '/team', label: 'Team' },
   { href: '/merch', label: 'Merch' },
   { href: '/projects', label: 'Projects' },
 ]
@@ -47,7 +47,7 @@ export function SiteHeader() {
         <div className="flex items-center gap-2">
           {!user ? (
             <Link
-              to="/login"
+              to="/membership/join"
               className={cn(buttonVariants({ size: 'lg' }), 'hidden h-10 rounded-full px-5 sm:inline-flex')}
             >
               Join the club
@@ -90,7 +90,7 @@ export function SiteHeader() {
             <li className="pt-2">
               {!user ? (
                 <Link
-                  to="/login"
+                  to="/membership/join"
                   onClick={() => setOpen(false)}
                   className={cn(buttonVariants({ size: 'lg' }), 'h-11 w-full rounded-full')}
                 >

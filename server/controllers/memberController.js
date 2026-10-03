@@ -86,10 +86,10 @@ exports.getMemberById = async (req, res) => {
 // POST /api/members/pay-dues
 exports.payDues = async (req, res) => {
   try {
-    const amount = Number(req.body.amount) || 25;
+    const amount = 25;
     const now = new Date();
-    const oneYearLater = new Date();
-    oneYearLater.setFullYear(now.getFullYear() + 1);
+    const membershipExpiresAt = new Date(now);
+    membershipExpiresAt.setFullYear(now.getFullYear() + 1);
 
     const user = await User.findById(req.user._id);
     if (!user) {
@@ -102,7 +102,7 @@ exports.payDues = async (req, res) => {
 
     user.membershipStatus = 'active';
     user.membershipPaidAt = now;
-    user.membershipExpiresAt = oneYearLater;
+    user.membershipExpiresAt = membershipExpiresAt;
     await user.save();
 
     // Auto-create positive inflow transaction in the treasury ledger
@@ -119,7 +119,7 @@ exports.payDues = async (req, res) => {
     res.status(200).json({
       success: true,
       data: { user },
-      message: 'Dues paid successfully. Membership is now active!',
+      message: 'Membership activated successfully!',
     });
   } catch (error) {
     res.status(500).json({

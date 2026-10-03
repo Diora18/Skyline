@@ -78,6 +78,22 @@ export const AuthProvider = ({ children }) => {
 
   const register = (userData) => authenticate('register', userData);
 
+  const refreshUser = async () => {
+    if (!token) return null;
+
+    const response = await fetch('/api/auth/me', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.message || 'Unable to refresh your account.');
+    }
+
+    setUser(result.data.user);
+    return result.data.user;
+  };
+
   const isMember = user?.membershipStatus === 'active';
   const isAdmin = user?.role === 'officer';
   const isExecutive = user?.role === 'treasurer' || user?.role === 'officer';
@@ -90,6 +106,7 @@ export const AuthProvider = ({ children }) => {
       login,
       logout,
       register,
+      refreshUser,
       isMember,
       isAdmin,
       isExecutive,

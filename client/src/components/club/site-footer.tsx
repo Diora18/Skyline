@@ -1,10 +1,11 @@
 import { ArrowUpRight, Sparkles } from 'lucide-react'
 import { buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { Link } from 'react-router-dom'
 
 const columns = [
-  { title: 'Club', links: [{ label: 'Events', href: '/event' }, { label: 'Membership', href: '/#membership' }, { label: 'Team', href: '/#team' }] },
-  { title: 'Members', links: [{ label: 'Apply now', href: '/login' }, { label: 'Perks', href: '/#perks' }, { label: 'FAQ', href: '/#faq' }] },
+  { title: 'Club', links: [{ label: 'Events', href: '/event' }, { label: 'Membership', href: '/membership/join' }, { label: 'Team', href: '/team' }] },
+  { title: 'Members', links: [{ label: 'Apply now', href: '/membership/join' }, { label: 'Perks', href: '/perks' }, { label: 'FAQ', href: '/faq' }] },
   { title: 'Follow', links: [{ label: 'Instagram', href: '#' }, { label: 'Discord', href: '#' }, { label: 'LinkedIn', href: '#' }] },
 ]
 
@@ -16,8 +17,8 @@ export function SiteFooter() {
           <h2 className="max-w-xl text-4xl font-extrabold leading-tight md:text-6xl">
             Your best semester starts <span className="text-accent">here.</span>
           </h2>
-          <a
-            href="/login"
+          <Link
+            to="/membership/join"
             className={cn(
               buttonVariants({ size: 'lg' }),
               'h-14 rounded-full bg-accent px-7 text-base font-semibold text-accent-foreground hover:bg-accent/90',
@@ -25,7 +26,7 @@ export function SiteFooter() {
           >
             Join Skyline SSA
             <ArrowUpRight data-icon="inline-end" />
-          </a>
+          </Link>
         </div>
 
         <div className="grid gap-10 pt-12 md:grid-cols-5">
@@ -46,9 +47,15 @@ export function SiteFooter() {
               <ul className="flex flex-col gap-2">
                 {col.links.map((l) => (
                   <li key={l.label}>
-                    <a href={l.href} className="hover:text-accent">
-                      {l.label}
-                    </a>
+                    {l.href.startsWith('/') ? (
+                      <Link to={l.href} className="hover:text-accent">
+                        {l.label}
+                      </Link>
+                    ) : (
+                      <a href={l.href} className="hover:text-accent">
+                        {l.label}
+                      </a>
+                    )}
                   </li>
                 ))}
               </ul>

@@ -2,6 +2,7 @@
 import { ArrowRight, CalendarDays, Users } from 'lucide-react'
 import { buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { Link } from 'react-router-dom'
 
 const stats = [
   { value: '640+', label: 'Active members' },
@@ -38,15 +39,15 @@ export function Hero() {
           </p>
 
           <div className="flex flex-wrap items-center gap-3">
-            <a
-              href="/login"
+            <Link
+              to="/membership/join"
               className={cn(buttonVariants({ size: 'lg' }), 'h-12 rounded-full px-6 text-base')}
             >
               Become a member
               <ArrowRight data-icon="inline-end" />
-            </a>
-            <a
-              href="/event"
+            </Link>
+            <Link
+              to="/event"
               className={cn(
                 buttonVariants({ variant: 'outline', size: 'lg' }),
                 'h-12 rounded-full bg-transparent px-6 text-base',
@@ -54,7 +55,7 @@ export function Hero() {
             >
               <CalendarDays data-icon="inline-start" />
               See events
-            </a>
+            </Link>
           </div>
 
           <div className="flex items-center gap-3">
