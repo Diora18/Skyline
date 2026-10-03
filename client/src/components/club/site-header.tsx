@@ -1,21 +1,40 @@
 import { useState } from 'react'
-import { Menu, Sparkles, X } from 'lucide-react'
+import { Menu, Sparkles, X, LogOut, User } from 'lucide-react'
 import { buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { Link } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 
-const navLinks = [
-  { href: '/event', label: 'Events' },
-  { href: '/perks', label: 'Perks' },
-  { href: '/team', label: 'Team' },
+const baseNavLinks = [
+  { href: '/events', label: 'Events' },
   { href: '/merch', label: 'Merch' },
   { href: '/projects', label: 'Projects' },
+  { href: '/announcements', label: 'Bulletin' },
+  { href: '/perks', label: 'Perks' },
+  { href: '/team', label: 'Team' },
 ]
 
 export function SiteHeader() {
   const [open, setOpen] = useState(false)
-  const { user, logout } = useAuth()
+  const { user, logout, isExecutive, isAdmin } = useAuth()
+
+  const navLinks = [
+    ...baseNavLinks,
+    ...(user ? [
+      { href: '/tickets', label: 'My Tickets' },
+      { href: '/orders', label: 'My Orders' }
+    ] : []),
+    ...(isExecutive ? [
+      { href: '/admin/treasury', label: 'Treasury' },
+      { href: '/admin/expenses', label: 'Claims' },
+      { href: '/admin/scanner', label: 'Scanner' },
+    ] : []),
+    ...(isAdmin ? [
+      { href: '/admin/members', label: 'Members' },
+      { href: '/admin/orders', label: 'Orders Queue' },
+      { href: '/admin/inventory', label: 'Inventory' },
+    ] : []),
+  ]
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background/85 backdrop-blur-md">
@@ -34,7 +53,7 @@ export function SiteHeader() {
                 <li key={link.label}>
                   <Link
                     to={link.href}
-                    className="rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                    className="rounded-lg px-3 py-2 text-xs font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                   >
                     {link.label}
                   </Link>
@@ -46,16 +65,36 @@ export function SiteHeader() {
 
         <div className="flex items-center gap-2">
           {!user ? (
-            <Link
-              to="/membership/join"
-              className={cn(buttonVariants({ size: 'lg' }), 'hidden h-10 rounded-full px-5 sm:inline-flex')}
-            >
-              Join the club
-            </Link>
+            <div className="hidden sm:flex items-center gap-2">
+              <Link
+                to="/login"
+                className="text-sm font-semibold text-muted-foreground hover:text-foreground px-3 py-2"
+              >
+                Log In
+              </Link>
+              <Link
+                to="/membership/join"
+                className={cn(buttonVariants({ size: 'sm' }), 'rounded-full px-4')}
+              >
+                Join the club
+              </Link>
+            </div>
           ) : (
             <div className="hidden sm:flex items-center gap-3">
-              <span className="text-sm font-medium">Hello, {user.name}</span>
-              <button onClick={logout} className="text-sm text-muted-foreground hover:text-destructive transition-colors">Logout</button>
+              <div className="flex items-center gap-2 rounded-full bg-muted/60 px-3 py-1.5 text-xs font-semibold">
+                <User className="h-3.5 w-3.5 text-primary" />
+                <span>{user.name}</span>
+                <span className="rounded-full bg-primary/10 text-primary px-2 py-0.5 uppercase tracking-wider text-[10px]">
+                  {user.role}
+                </span>
+              </div>
+              <button
+                onClick={logout}
+                className="text-muted-foreground hover:text-destructive transition-colors p-1.5 rounded-lg hover:bg-muted"
+                title="Log Out"
+              >
+                <LogOut className="h-4 w-4" />
+              </button>
             </div>
           )}
           <button
@@ -89,17 +128,26 @@ export function SiteHeader() {
             })}
             <li className="pt-2">
               {!user ? (
-                <Link
-                  to="/membership/join"
-                  onClick={() => setOpen(false)}
-                  className={cn(buttonVariants({ size: 'lg' }), 'h-11 w-full rounded-full')}
-                >
-                  Join the club
-                </Link>
+                <div className="flex flex-col gap-2">
+                  <Link
+                    to="/login"
+                    onClick={() => setOpen(false)}
+                    className="text-center text-sm font-semibold py-2"
+                  >
+                    Log In
+                  </Link>
+                  <Link
+                    to="/membership/join"
+                    onClick={() => setOpen(false)}
+                    className={cn(buttonVariants({ size: 'lg' }), 'h-11 w-full rounded-full')}
+                  >
+                    Join the club
+                  </Link>
+                </div>
               ) : (
-                <div className="flex flex-col gap-2 p-3">
-                  <span className="text-sm font-medium">Hello, {user.name}</span>
-                  <button onClick={() => { logout(); setOpen(false); }} className="text-sm text-left text-muted-foreground hover:text-destructive">Logout</button>
+                <div className="flex flex-col gap-2 p-3 border-t border-border mt-2">
+                  <span className="text-sm font-semibold">{user.name} ({user.role})</span>
+                  <button onClick={() => { logout(); setOpen(false); }} className="text-sm text-left text-destructive font-medium">Log out</button>
                 </div>
               )}
             </li>
