@@ -76,7 +76,7 @@ export function MembershipJoin() {
               title={isActiveMember ? 'You’re a member' : 'Become a member'}
               description={isActiveMember
                 ? 'Your Skyline SSA membership is active.'
-                : 'Activate one year of membership with the existing $25 dues payment.'}
+                : 'Activate one year of membership with the existing ₹25 dues payment.'}
             />
           </div>
 
@@ -86,7 +86,7 @@ export function MembershipJoin() {
               <p className="text-muted-foreground">
                 Membership provides access to member-only events, peer mentorship, partner discounts, and voting rights.
               </p>
-              <p className="font-display text-5xl font-extrabold">$25 <span className="text-lg text-muted-foreground">/ year</span></p>
+              <p className="font-display text-5xl font-extrabold">₹25 <span className="text-lg text-muted-foreground">/ year</span></p>
               <ul className="flex flex-col gap-3">
                 {['Member-only events & hackathons', 'Peer mentorship', 'Partner discounts', 'Voting rights'].map((feature) => (
                   <li key={feature} className="flex items-center gap-3 text-sm">
@@ -120,7 +120,7 @@ export function MembershipJoin() {
                 </p>
               </div>
               {!isActiveMember && <ol className="flex flex-col gap-4">
-                {['Review your account details', 'Confirm the $25 dues payment', 'Membership activates for one year'].map(
+                {['Review your account details', 'Confirm the ₹25 dues payment', 'Membership activates for one year'].map(
                   (step, index) => (
                     <li key={step} className="flex items-center gap-3">
                       <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary-foreground font-display font-bold text-primary">
@@ -200,7 +200,7 @@ export function MembershipJoin() {
 
                   <Button type="submit" disabled={submitting || authLoading || isActiveMember} className="h-12 rounded-full text-base font-semibold">
                     {submitting && <Loader2 className="mr-2 size-4 animate-spin" />}
-                    {submitting ? 'Processing dues...' : `${isRenewal ? 'Renew membership' : 'Activate membership'} · $25`}
+                    {submitting ? 'Processing dues...' : `${isRenewal ? 'Renew membership' : 'Activate membership'} · ₹25`}
                   </Button>
                 </form>
               ) : null}

@@ -86,7 +86,7 @@ export default function MyExpenses() {
                     {expense.linkedProject?.title ? ` · ${expense.linkedProject.title}` : ''}
                   </p>
                 </div>
-                <span className="text-2xl font-extrabold">${Number(expense.amount || 0).toFixed(2)}</span>
+                <span className="text-2xl font-extrabold">₹{Number(expense.amount || 0).toFixed(2)}</span>
               </div>
               {expense.rejectionReason && (
                 <p className="mt-4 rounded-xl bg-destructive/10 p-3 text-sm text-destructive">

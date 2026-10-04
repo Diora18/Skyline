@@ -43,7 +43,7 @@ exports.getAnnouncements = async (req, res) => {
 // POST /api/announcements (Officer only)
 exports.createAnnouncement = async (req, res) => {
   try {
-    const { title, body, category = 'general', sendEmail = false } = req.body;
+    const { title, body, category = 'general' } = req.body;
 
     if (!title || !body) {
       return res.status(400).json({
@@ -60,7 +60,8 @@ exports.createAnnouncement = async (req, res) => {
       body: body.trim(),
       category: validCategory,
       postedBy: req.user._id,
-      emailSent: Boolean(sendEmail),
+      // No mail provider is configured yet, so never claim that a broadcast was sent.
+      emailSent: false,
     });
 
     await announcement.populate('postedBy', 'name role');
@@ -68,9 +69,7 @@ exports.createAnnouncement = async (req, res) => {
     res.status(201).json({
       success: true,
       data: { announcement },
-      message: sendEmail
-        ? 'Announcement posted and mass email notification dispatched to all members'
-        : 'Announcement posted successfully',
+      message: 'Announcement posted successfully. Email delivery is not configured.',
     });
   } catch (error) {
     res.status(500).json({

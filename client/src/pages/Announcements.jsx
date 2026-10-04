@@ -1,7 +1,7 @@
 import { useState, useEffect, useContext } from 'react';
 import announcementService from '@/services/announcementService';
 import { AuthContext } from '@/context/AuthContext';
-import { Megaphone, Plus, Trash2, Calendar, MailCheck, Loader2 } from 'lucide-react';
+import { Megaphone, Plus, Trash2, Calendar, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CustomSelect } from '@/components/ui/custom-select';
 
@@ -16,7 +16,6 @@ export default function Announcements() {
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [category, setCategory] = useState('general');
-  const [sendEmail, setSendEmail] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
   const fetchAnnouncements = async () => {
@@ -45,7 +44,6 @@ export default function Announcements() {
         title,
         body,
         category,
-        sendEmail,
       });
       setShowModal(false);
       setTitle('');
@@ -134,11 +132,6 @@ export default function Announcements() {
                       <span className="rounded-full bg-primary/10 text-primary px-3 py-0.5 text-xs font-bold uppercase tracking-wider">
                         {item.category}
                       </span>
-                      {item.emailSent && (
-                        <span className="flex items-center gap-1 text-[10px] text-emerald-500 font-bold uppercase">
-                          <MailCheck className="h-3 w-3" /> Email Broadcasted
-                        </span>
-                      )}
                     </div>
                     <h2 className="text-2xl font-extrabold">{item.title}</h2>
                   </div>
@@ -216,18 +209,9 @@ export default function Announcements() {
                 />
               </div>
 
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="sendEmail"
-                  checked={sendEmail}
-                  onChange={(e) => setSendEmail(e.target.checked)}
-                  className="rounded border-input text-primary focus:ring-primary"
-                />
-                <label htmlFor="sendEmail" className="text-xs font-medium text-muted-foreground">
-                  Simulate sending email notification broadcast to all active members
-                </label>
-              </div>
+              <p className="rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs text-muted-foreground">
+                Email delivery is not configured. This announcement will appear in the portal only.
+              </p>
 
               <div className="flex justify-end gap-2 pt-2">
                 <Button type="button" variant="ghost" onClick={() => setShowModal(false)} className="rounded-full">

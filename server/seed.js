@@ -483,7 +483,7 @@ async function seed() {
   // ═══════════════════════════════════════════════
   const txns = [];
 
-  // Membership dues (7 active members × $25)
+  // Membership dues (7 active members × ₹25)
   const activeMembers = [u.admin, u.president, u.vp, u.treasurer, u.carlos, u.mei, u.david];
   activeMembers.forEach((member, i) => {
     txns.push({
@@ -498,7 +498,7 @@ async function seed() {
     });
   });
 
-  // Ticket sales income (only paid tickets — gala: 7×$15 + 1×$30, alumni: 3×$5 + 1×$15)
+  // Ticket sales income (only paid tickets — gala: 7×₹15 + 1×₹30, alumni: 3×₹5 + 1×₹15)
   txns.push({
     type: 'income', category: 'ticket_sale', amount: 135,
     description: 'Ticket sales for Skyline Annual Tech Gala (7 member + 1 non-member)',
@@ -584,14 +584,14 @@ async function seed() {
       body: 'We are thrilled to kick off another amazing year at SSA! Whether you\'re a returning member or joining for the first time, there\'s a place for you here. Check out our upcoming events, grab some merch, and get involved. Let\'s make this the best year yet!',
       category: 'update',
       postedBy: u.president._id,
-      emailSent: true,
+      emailSent: false,
     },
     {
       title: 'HackSkyline 2026 Registration Now Live!',
       body: 'Registration for our flagship 24-hour hackathon is officially open! Form a team of up to 4, pick a track, and build something incredible. Prizes include tech gadgets, internship referrals, and campus recognition. Free entry for all students — sign up before spots fill up!',
       category: 'urgent',
       postedBy: u.president._id,
-      emailSent: true,
+      emailSent: false,
     },
     {
       title: 'SSA Office Hours — Every Tuesday 2-4 PM',
@@ -605,7 +605,7 @@ async function seed() {
       body: 'Active SSA members get 20% off all merchandise this week. Use your member dashboard to place orders. Stock is limited, especially for the signature hoodies!',
       category: 'update',
       postedBy: u.vp._id,
-      emailSent: true,
+      emailSent: false,
     },
     {
       title: 'Executive Board Elections — Nominations Open Nov 1',
@@ -640,7 +640,7 @@ async function seed() {
   console.log(`  Transactions:   ${transactions.length}`);
   console.log(`  Announcements:  ${announcements.length}`);
   console.log('──────────────────────────────────────────');
-  console.log(`  💰 Treasury: $${income.toFixed(2)} in  /  $${expense.toFixed(2)} out  =  $${(income - expense).toFixed(2)} net`);
+  console.log(`  💰 Treasury: ₹${income.toFixed(2)} in  /  ₹${expense.toFixed(2)} out  =  ₹${(income - expense).toFixed(2)} net`);
   console.log('──────────────────────────────────────────');
   console.log('  🔑 Login credentials (all same password):');
   console.log('     Password: Password123!');

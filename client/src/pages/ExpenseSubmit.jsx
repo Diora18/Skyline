@@ -139,7 +139,7 @@ export default function ExpenseSubmit() {
             </div>
             <h3 className="text-2xl font-extrabold">Claim Submitted!</h3>
             <p className="text-sm text-muted-foreground">
-              Your claim for <span className="font-semibold text-foreground">${amount}</span> has been submitted to the Treasurer review queue.
+              Your claim for <span className="font-semibold text-foreground">₹{amount}</span> has been submitted to the Treasurer review queue.
             </p>
             <Button className="rounded-full w-full" onClick={() => navigate('/expenses/my')}>
               View My Expense Claims
@@ -161,7 +161,7 @@ export default function ExpenseSubmit() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">Amount ($ USD)</label>
+                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">Amount (₹ INR)</label>
                 <input
                   type="number"
                   min="0.01"

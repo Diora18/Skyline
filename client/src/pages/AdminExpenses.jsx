@@ -119,7 +119,7 @@ export default function AdminExpenses() {
                   </div>
 
                   <div className="text-right">
-                    <span className="text-3xl font-extrabold text-foreground">${expense.amount?.toFixed(2)}</span>
+                    <span className="text-3xl font-extrabold text-foreground">₹{expense.amount?.toFixed(2)}</span>
                     <p className="text-xs text-muted-foreground">
                       {expense.createdAt ? new Date(expense.createdAt).toLocaleDateString() : ''}
                     </p>

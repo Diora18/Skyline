@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import orderService from '@/services/orderService';
 import { PackageCheck, Clock, CheckCircle2, ShieldCheck, Loader2, Filter, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { formatCurrency } from '@/utils/helpers';
 
 export default function AdminOrders() {
   const [orders, setOrders] = useState([]);
@@ -103,7 +104,7 @@ export default function AdminOrders() {
                   </div>
 
                   <div className="text-right">
-                    <span className="text-2xl font-extrabold text-foreground">${order.totalPrice?.toFixed(2)}</span>
+                    <span className="text-2xl font-extrabold text-foreground">{formatCurrency(order.totalPrice)}</span>
                     <p className="text-xs text-muted-foreground">
                       {order.createdAt ? new Date(order.createdAt).toLocaleString() : ''}
                     </p>
@@ -120,7 +121,7 @@ export default function AdminOrders() {
                           (Variant: {order.variant?.size ? `Size ${order.variant.size}` : ''} {order.variant?.color ? `[${order.variant.color}]` : ''} · Qty: {order.quantity})
                         </span>
                       </div>
-                      <span className="font-semibold">${order.totalPrice?.toFixed(2)}</span>
+                      <span className="font-semibold">{formatCurrency(order.totalPrice)}</span>
                     </div>
                   )}
                 </div>

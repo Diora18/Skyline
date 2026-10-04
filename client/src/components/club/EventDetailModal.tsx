@@ -336,7 +336,7 @@ export function EventDetailModal({ event, onClose, onTicketPurchased }: any) {
                 ) : (
                   <>
                     <Ticket className="h-4 w-4 mr-2" />
-                    {price === 0 ? 'Claim Free Ticket' : `Purchase Ticket ($${price})`}
+                    {price === 0 ? 'Claim Free Ticket' : `Purchase Ticket (₹${price})`}
                   </>
                 )}
               </Button>

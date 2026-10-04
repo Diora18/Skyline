@@ -3,6 +3,7 @@ import orderService from '@/services/orderService';
 import { Package, Clock, CheckCircle2, ShoppingBag, Loader2, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
+import { formatCurrency } from '@/utils/helpers';
 
 export default function Orders() {
   const [orders, setOrders] = useState([]);
@@ -97,7 +98,7 @@ export default function Orders() {
 
                   <div className="flex items-center gap-3">
                     {getStatusBadge(order.status)}
-                    <span className="text-xl font-extrabold text-foreground">${order.totalPrice?.toFixed(2)}</span>
+                    <span className="text-xl font-extrabold text-foreground">{formatCurrency(order.totalPrice)}</span>
                   </div>
                 </div>
 
@@ -119,7 +120,7 @@ export default function Orders() {
                           </p>
                         </div>
                       </div>
-                      <span className="text-sm font-semibold">${order.totalPrice?.toFixed(2)}</span>
+                      <span className="text-sm font-semibold">{formatCurrency(order.totalPrice)}</span>
                     </div>
                 </div>
               </div>

@@ -6,6 +6,7 @@ import { ShoppingBag, CheckCircle2, Loader2, AlertCircle, X, Plus, Minus, ArrowR
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { processRazorpayPayment } from '@/utils/razorpay';
+import { formatCurrency } from '@/utils/helpers';
 
 export default function Merch() {
   const [products, setProducts] = useState([]);
@@ -134,7 +135,7 @@ export default function Merch() {
                 <div className="mt-6 pt-4 border-t border-border flex items-center justify-between">
                   <div>
                     <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold block">Price</span>
-                    <span className="text-2xl font-extrabold text-foreground">${product.basePrice}</span>
+                    <span className="text-2xl font-extrabold text-foreground">{formatCurrency(product.basePrice)}</span>
                   </div>
 
                   <Button
@@ -242,7 +243,7 @@ function ProductCheckoutModal({ product, onClose, onOrderSuccess }) {
               </div>
               <div className="flex justify-between text-sm font-extrabold text-foreground pt-1 border-t border-border">
                 <span>Total Amount Paid:</span>
-                <span>${createdOrder.totalPrice?.toFixed(2) || totalPrice}</span>
+                <span>{formatCurrency(createdOrder.totalPrice ?? totalPrice)}</span>
               </div>
               <div className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-semibold pt-1">
                 <ShieldCheck className="h-4 w-4" />
@@ -331,7 +332,7 @@ function ProductCheckoutModal({ product, onClose, onOrderSuccess }) {
             <div className="flex items-center justify-between border-t border-border pt-4">
               <div>
                 <span className="text-xs text-muted-foreground uppercase font-bold tracking-wider block">Total Amount</span>
-                <span className="text-3xl font-extrabold text-foreground">${totalPrice}</span>
+                <span className="text-3xl font-extrabold text-foreground">{formatCurrency(totalPrice)}</span>
               </div>
 
               <Button

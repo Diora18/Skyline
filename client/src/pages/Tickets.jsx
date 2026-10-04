@@ -136,7 +136,7 @@ export default function Tickets() {
                     <div>
                       <h3 className="text-xl font-extrabold leading-snug">{event.title || 'Skyline Event'}</h3>
                       <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                        {ticket.ticketType === 'member' ? 'Member Ticket' : 'General Admission'} · ${ticket.price}
+                        {ticket.ticketType === 'member' ? 'Member Ticket' : 'General Admission'} · ₹{ticket.price}
                       </span>
                     </div>
 

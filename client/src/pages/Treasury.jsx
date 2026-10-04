@@ -4,9 +4,10 @@ import eventService from '@/services/eventService';
 import projectService from '@/services/projectService';
 import expenseService from '@/services/expenseService';
 import ticketService from '@/services/ticketService';
-import { DollarSign, ArrowUpRight, ArrowDownRight, Wallet, Receipt, Plus, Loader2, Filter } from 'lucide-react';
+import { IndianRupee, ArrowUpRight, ArrowDownRight, Wallet, Receipt, Plus, Loader2, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CustomSelect } from '@/components/ui/custom-select';
+import { formatCurrency } from '@/utils/helpers';
 
 export default function Treasury() {
   const [summary, setSummary] = useState(null);
@@ -162,7 +163,7 @@ export default function Treasury() {
                   <Wallet className="h-5 w-5" />
                 </div>
               </div>
-              <p className="text-3xl font-extrabold text-foreground mt-3">${summary?.netBalance?.toFixed(2) || '0.00'}</p>
+              <p className="text-3xl font-extrabold text-foreground mt-3">{formatCurrency(summary?.netBalance || 0)}</p>
               <span className="text-xs text-emerald-500 font-semibold mt-1 block">Live Audited Liquidity</span>
             </div>
 
@@ -173,7 +174,7 @@ export default function Treasury() {
                   <ArrowUpRight className="h-5 w-5" />
                 </div>
               </div>
-              <p className="text-3xl font-extrabold text-foreground mt-3">${summary?.totalIncome?.toFixed(2) || '0.00'}</p>
+              <p className="text-3xl font-extrabold text-foreground mt-3">{formatCurrency(summary?.totalIncome || 0)}</p>
               <span className="text-xs text-muted-foreground mt-1 block">Tickets, Merch, Dues</span>
             </div>
 
@@ -184,7 +185,7 @@ export default function Treasury() {
                   <ArrowDownRight className="h-5 w-5" />
                 </div>
               </div>
-              <p className="text-3xl font-extrabold text-foreground mt-3">${summary?.totalExpenses?.toFixed(2) || '0.00'}</p>
+              <p className="text-3xl font-extrabold text-foreground mt-3">{formatCurrency(summary?.totalExpenses || 0)}</p>
               <span className="text-xs text-muted-foreground mt-1 block">Reimbursements & Operations</span>
             </div>
 
@@ -224,9 +225,9 @@ export default function Treasury() {
                       </p>
                     </div>
                     <div className="flex gap-5 text-sm">
-                      <span className="text-emerald-600">Income ${event.income.toFixed(2)}</span>
-                      <span className="text-destructive">Expense ${event.expenses.toFixed(2)}</span>
-                      <span className="font-bold">Net ${(event.income - event.expenses).toFixed(2)}</span>
+                      <span className="text-emerald-600">Income {formatCurrency(event.income)}</span>
+                      <span className="text-destructive">Expense {formatCurrency(event.expenses)}</span>
+                      <span className="font-bold">Net {formatCurrency(event.income - event.expenses)}</span>
                     </div>
                   </div>
                 ))}
@@ -279,7 +280,7 @@ export default function Treasury() {
                     </div>
 
                     <span className={`text-base font-mono font-extrabold ${tx.type === 'income' ? 'text-emerald-500' : 'text-destructive'}`}>
-                      {tx.type === 'income' ? '+' : '-'}${tx.amount?.toFixed(2)}
+                      {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount)}
                     </span>
                   </div>
                 ))
@@ -323,7 +324,7 @@ export default function Treasury() {
               </div>
 
               <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">Amount ($ USD)</label>
+                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">Amount (₹ INR)</label>
                 <input
                   type="number"
                   step="0.01"

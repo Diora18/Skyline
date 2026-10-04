@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 export const formatCurrency = (value) => {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency: 'USD',
+    currency: 'INR',
   }).format(value);
 };
 

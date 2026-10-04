@@ -389,7 +389,7 @@ export function Sidebar() {
                       onClick={() => setMobileOpen(false)}
                       className="block w-full text-center text-[11px] font-bold text-primary hover:underline bg-primary/10 py-1.5 rounded-lg border border-primary/20"
                     >
-                      Join Member Tier ($25/yr)
+                      Join Member Tier (₹25/yr)
                     </Link>
                   )}
                 </div>
