@@ -8,6 +8,14 @@ import volunteerService from '@/services/volunteerService';
 import { AlumniSocialLinks } from './alumni-social-links';
 import { processRazorpayPayment } from '@/utils/razorpay';
 
+const getEventImage = (event: any) => {
+  if (event.bannerImage) return event.bannerImage;
+  if (event.category === 'workshop') return '/images/event-workshop.png';
+  if (/hack/i.test(event.title || '')) return '/images/event-hackathon.png';
+  if (event.category === 'social' || /alumni|gala/i.test(event.title || '')) return '/images/event-social.png';
+  return '/images/hero.png';
+};
+
 export function EventDetailModal({ event, onClose, onTicketPurchased }: any) {
   const { user, token, isMember } = useContext(AuthContext);
   const navigate = useNavigate();
@@ -188,11 +196,15 @@ export function EventDetailModal({ event, onClose, onTicketPurchased }: any) {
           </div>
         ) : (
           <div className="space-y-5">
-            {event.bannerImage && (
+            {getEventImage(event) && (
               <img
-                src={event.bannerImage}
+                src={getEventImage(event)}
                 alt={event.title}
                 className="h-44 w-full object-cover rounded-2xl"
+                onError={(imageEvent) => {
+                  imageEvent.currentTarget.onerror = null;
+                  imageEvent.currentTarget.src = '/images/hero.png';
+                }}
               />
             )}
 

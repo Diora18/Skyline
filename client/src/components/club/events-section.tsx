@@ -35,6 +35,14 @@ const emptyEventForm = {
   createLinkedProject: false,
 }
 
+const getEventImage = (event: any) => {
+  if (event.bannerImage) return event.bannerImage
+  if (event.category === 'workshop') return '/images/event-workshop.png'
+  if (/hack/i.test(event.title || '')) return '/images/event-hackathon.png'
+  if (event.category === 'social' || /alumni|gala/i.test(event.title || '')) return '/images/event-social.png'
+  return '/images/hero.png'
+}
+
 const toLocalDateTime = (value: string) => {
   if (!value) return ''
   const date = new Date(value)
@@ -414,21 +422,18 @@ export function EventsSection() {
                     className="group flex h-full cursor-pointer flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl"
                   >
                     <div className="relative aspect-[16/10] overflow-hidden bg-gradient-to-br from-primary/20 via-secondary/30 to-accent/30">
-                      {event.bannerImage ? (
+                      {getEventImage(event) ? (
                         <img
-                          src={event.bannerImage}
-                          alt=""
+                          src={getEventImage(event)}
+                          alt={`${event.title} event`}
                           loading="lazy"
                           className="absolute inset-0 size-full object-cover transition-transform duration-500 group-hover:scale-105"
-                          onError={(imageEvent: any) => { imageEvent.currentTarget.style.display = 'none' }}
+                          onError={(imageEvent: any) => {
+                            imageEvent.currentTarget.onerror = null
+                            imageEvent.currentTarget.src = '/images/hero.png'
+                          }}
                         />
-                      ) : (
-                        <div className="absolute inset-0 flex items-center justify-center text-primary/70">
-                          <div className="flex size-20 items-center justify-center rounded-3xl border border-white/50 bg-white/30 shadow-sm backdrop-blur-sm">
-                            {isAlumniEvent ? <Users className="size-10" /> : <CalendarDays className="size-10" />}
-                          </div>
-                        </div>
-                      )}
+                      ) : null}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-transparent to-black/10" />
                       <div className="absolute left-4 top-4 flex flex-wrap gap-2">
                         <span className="rounded-full bg-background/90 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-foreground shadow-sm backdrop-blur">
