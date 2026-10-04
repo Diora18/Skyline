@@ -1,15 +1,20 @@
 const Expense = require('../models/Expense');
 const Transaction = require('../models/Transaction');
 const Event = require('../models/Event');
+const Project = require('../models/Project');
 const EventVolunteerApplication = require('../models/EventVolunteerApplication');
 const { canManageEvent } = require('../middleware/roleCheck');
+const { isValidObjectId, isPositiveNumber, isValidUrl } = require('../utils/validation');
 
 // POST /api/expenses (global expense roles or approved volunteers for the linked event)
 exports.submitExpense = async (req, res) => {
   try {
     const { amount, category, description, linkedProject, receiptUrl, event: eventId } = req.body;
 
-    if (!Number.isFinite(Number(amount)) || Number(amount) <= 0 || !category || !description?.trim()) {
+    const validCategories = ['supplies', 'food', 'decorations', 'transport', 'venue', 'other'];
+    if (!isPositiveNumber(amount) || !validCategories.includes(category) || !description?.trim() ||
+        description.trim().length > 2000 || (receiptUrl && !isValidUrl(receiptUrl)) ||
+        (linkedProject && !isValidObjectId(linkedProject)) || (eventId && !isValidObjectId(eventId))) {
       return res.status(400).json({
         success: false,
         data: null,
@@ -25,6 +30,13 @@ exports.submitExpense = async (req, res) => {
           success: false,
           data: null,
           message: 'The event linked to this expense claim was not found.',
+        });
+      }
+      if (linkedProject && event.linkedProject && String(linkedProject) !== String(event.linkedProject)) {
+        return res.status(400).json({
+          success: false,
+          data: null,
+          message: 'The linked project must belong to the selected event.',
         });
       }
 
@@ -50,6 +62,13 @@ exports.submitExpense = async (req, res) => {
         data: null,
         message: 'An approved event volunteer must link the claim to their assigned event.',
       });
+    }
+
+    if (linkedProject && !event) {
+      const project = await Project.findById(linkedProject).select('linkedEvent');
+      if (!project) {
+        return res.status(404).json({ success: false, data: null, message: 'The linked project was not found.' });
+      }
     }
 
     const expense = await Expense.create({

@@ -4,6 +4,7 @@ const User = require('../models/User');
 const Ticket = require('../models/Ticket');
 const EventVolunteerApplication = require('../models/EventVolunteerApplication');
 const { canManageEvent } = require('../middleware/roleCheck');
+const { isNonNegativeNumber, isNonNegativeInteger, isValidDate, isValidUrl } = require('../utils/validation');
 
 // GET /api/events
 exports.getEvents = async (req, res) => {
@@ -110,6 +111,22 @@ exports.createEvent = async (req, res) => {
         message: 'Title, category, venue, startDate, and endDate are required.',
       });
     }
+    const validCategories = ['gala', 'fundraiser', 'meeting', 'workshop', 'social'];
+    const validStatuses = ['draft', 'published', 'cancelled', 'completed'];
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const pricesAreValid = isNonNegativeNumber(memberPrice) && isNonNegativeNumber(nonMemberPrice);
+    const capacityIsValid = capacity === null || capacity === '' || isNonNegativeInteger(capacity);
+    if (!validCategories.includes(category) || !validStatuses.includes(status) ||
+        !isValidDate(startDate) || !isValidDate(endDate) || end <= start ||
+        !pricesAreValid || !capacityIsValid || (bannerImage && !isValidUrl(bannerImage)) ||
+        String(title).trim().length > 160 || String(description || '').length > 5000) {
+      return res.status(400).json({
+        success: false,
+        data: null,
+        message: 'Invalid event details. Check category, status, dates, prices, capacity, banner URL, and field lengths.',
+      });
+    }
 
     const event = new Event({
       title: title.trim(),
@@ -118,11 +135,11 @@ exports.createEvent = async (req, res) => {
       bannerImage: bannerImage || '',
       venue: venue.trim(),
       address: address || '',
-      startDate: new Date(startDate),
-      endDate: new Date(endDate),
-      memberPrice: Number(memberPrice) || 0,
-      nonMemberPrice: Number(nonMemberPrice) || 0,
-      capacity: capacity ? Number(capacity) : null,
+      startDate: start,
+      endDate: end,
+      memberPrice: Number(memberPrice),
+      nonMemberPrice: Number(nonMemberPrice),
+      capacity: capacity === '' || capacity === null ? null : Number(capacity),
       status,
       createdBy: req.user._id,
       managers: [],
@@ -184,6 +201,20 @@ exports.updateEvent = async (req, res) => {
       'address', 'startDate', 'endDate', 'memberPrice', 'nonMemberPrice',
       'capacity', 'status'
     ];
+
+    const nextStart = req.body.startDate === undefined ? event.startDate : new Date(req.body.startDate);
+    const nextEnd = req.body.endDate === undefined ? event.endDate : new Date(req.body.endDate);
+    const numericFields = ['memberPrice', 'nonMemberPrice'];
+    if ((req.body.category !== undefined && !['gala', 'fundraiser', 'meeting', 'workshop', 'social'].includes(req.body.category)) ||
+        (req.body.status !== undefined && !['draft', 'published', 'cancelled', 'completed'].includes(req.body.status)) ||
+        (req.body.title !== undefined && (!String(req.body.title).trim() || String(req.body.title).length > 160)) ||
+        (req.body.venue !== undefined && (!String(req.body.venue).trim() || String(req.body.venue).length > 300)) ||
+        !isValidDate(nextStart) || !isValidDate(nextEnd) || nextEnd <= nextStart ||
+        numericFields.some((field) => req.body[field] !== undefined && !isNonNegativeNumber(req.body[field])) ||
+        (req.body.capacity !== undefined && req.body.capacity !== null && req.body.capacity !== '' && !isNonNegativeInteger(req.body.capacity)) ||
+        (req.body.bannerImage !== undefined && req.body.bannerImage && !isValidUrl(req.body.bannerImage))) {
+      return res.status(400).json({ success: false, data: null, message: 'Invalid event update details.' });
+    }
 
     allowedUpdates.forEach((field) => {
       if (req.body[field] !== undefined) {

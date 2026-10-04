@@ -24,6 +24,7 @@ const Task         = require('./models/Task');
 const Transaction  = require('./models/Transaction');
 const Expense      = require('./models/Expense');
 const Announcement = require('./models/Announcement');
+const EventVolunteerApplication = require('./models/EventVolunteerApplication');
 
 // ── Helpers ─────────────────────────────────────
 const now      = new Date();
@@ -157,6 +158,59 @@ async function seed() {
   ev.hackathon   = events[1];
   ev.alumni      = events[2];
   ev.orientation = events[3];
+
+  // ═══════════════════════════════════════════════
+  //  2b. EVENT VOLUNTEER ASSIGNMENTS
+  // ═══════════════════════════════════════════════
+  const volunteerApplications = await EventVolunteerApplication.insertMany([
+    {
+      event: ev.gala._id,
+      user: u.carlos._id,
+      status: 'approved',
+      responsibility: 'Registration desk and guest check-in',
+      reviewedBy: u.president._id,
+      reviewedAt: ago(3),
+    },
+    {
+      event: ev.gala._id,
+      user: u.mei._id,
+      status: 'approved',
+      responsibility: 'Photography and social media',
+      reviewedBy: u.president._id,
+      reviewedAt: ago(3),
+    },
+    {
+      event: ev.hackathon._id,
+      user: u.carlos._id,
+      status: 'approved',
+      responsibility: 'Catering and supplies',
+      reviewedBy: u.mei._id,
+      reviewedAt: ago(5),
+    },
+    {
+      event: ev.hackathon._id,
+      user: u.mei._id,
+      status: 'approved',
+      responsibility: 'Registration and participant support',
+      reviewedBy: u.mei._id,
+      reviewedAt: ago(5),
+    },
+    {
+      event: ev.alumni._id,
+      user: u.carlos._id,
+      status: 'approved',
+      responsibility: 'Venue setup and guest seating',
+      reviewedBy: u.vp._id,
+      reviewedAt: ago(2),
+    },
+    {
+      event: ev.alumni._id,
+      user: u.david._id,
+      status: 'pending',
+      responsibility: 'Photography',
+    },
+  ]);
+  console.log(`[Seed] Created ${volunteerApplications.length} event volunteer assignments`);
 
   // ═══════════════════════════════════════════════
   //  3. TICKETS  (24 records)
@@ -328,6 +382,22 @@ async function seed() {
       createdBy: u.president._id,
     },
     {
+      title: 'Tech Gala Event Operations',
+      description: 'Coordinate registration, guest experience, photography, and venue logistics for the annual gala.',
+      deadline: ahead(25),
+      linkedEvent: ev.gala._id,
+      status: 'active',
+      createdBy: u.president._id,
+    },
+    {
+      title: 'Alumni Panel Event Operations',
+      description: 'Prepare the alumni panel venue, seating plan, signage, and guest welcome experience.',
+      deadline: ahead(10),
+      linkedEvent: ev.alumni._id,
+      status: 'active',
+      createdBy: u.vp._id,
+    },
+    {
       title: 'Spring Merchandise Rebrand',
       description: 'Redesign all SSA merchandise with updated branding, new product lines, and supplier negotiations.',
       deadline: ahead(60),
@@ -342,7 +412,12 @@ async function seed() {
 
   const pj = {};
   pj.hack  = projects[0];
-  pj.merch = projects[1];
+  pj.gala  = projects[1];
+  pj.alumni = projects[2];
+  pj.merch = projects[3];
+
+  await Event.updateOne({ _id: ev.gala._id }, { linkedProject: pj.gala._id });
+  await Event.updateOne({ _id: ev.alumni._id }, { linkedProject: pj.alumni._id });
 
   // ═══════════════════════════════════════════════
   //  7. TASKS  (18 records)
@@ -359,6 +434,17 @@ async function seed() {
     { title: 'Setup WiFi and power strips',         project: pj.hack._id, assignee: null,             status: 'todo',        priority: 'low',    dueDate: ahead(40), supplies: ['Extension cords x20', 'Power strips x30'] },
     { title: 'Create judging rubric',               project: pj.hack._id, assignee: u.vp._id,        status: 'done',        priority: 'medium', dueDate: ahead(8),  supplies: [] },
     { title: 'Test live-streaming setup',            project: pj.hack._id, assignee: u.david._id,     status: 'todo',        priority: 'low',    dueDate: ahead(38), supplies: ['Webcam', 'Tripod', 'Streaming laptop'] },
+
+    // ── Tech Gala project (4 tasks) ──
+    { title: 'Prepare gala registration desk',      project: pj.gala._id, assignee: u.carlos._id, status: 'in_progress', priority: 'high', dueDate: ahead(20), supplies: ['Check-in tablet', 'Name badges', 'Attendance list'] },
+    { title: 'Create gala photo shot list',         project: pj.gala._id, assignee: u.mei._id,    status: 'todo',        priority: 'medium', dueDate: ahead(22), supplies: ['Camera', 'Memory cards'] },
+    { title: 'Confirm keynote guest arrival plan',  project: pj.gala._id, assignee: u.president._id, status: 'done', priority: 'high', dueDate: ahead(4), supplies: [] },
+    { title: 'Test ticket scanner at entrance',     project: pj.gala._id, assignee: u.carlos._id, status: 'todo', priority: 'medium', dueDate: ahead(27), supplies: ['Charged phone'] },
+
+    // ── Alumni panel project (3 tasks) ──
+    { title: 'Arrange panel seating and microphones', project: pj.alumni._id, assignee: u.carlos._id, status: 'todo', priority: 'high', dueDate: ahead(8), supplies: ['Reserved signs', 'Microphones'] },
+    { title: 'Prepare alumni welcome table',          project: pj.alumni._id, assignee: u.carlos._id, status: 'done', priority: 'medium', dueDate: ahead(5), supplies: ['Name tags', 'Welcome packets'] },
+    { title: 'Review panel run-of-show',              project: pj.alumni._id, assignee: u.vp._id,     status: 'in_progress', priority: 'high', dueDate: ahead(6), supplies: [] },
 
     // ── Merch Rebrand project (8 tasks) ──
     { title: 'Research new merchandise vendors',    project: pj.merch._id, assignee: u.vp._id,        status: 'done',        priority: 'high',   dueDate: ahead(5),  supplies: [] },
@@ -562,6 +648,7 @@ async function seed() {
   console.log('     president@skyline.edu  (officer)');
   console.log('     treasurer@skyline.edu  (treasurer)');
   console.log('     carlos@skyline.edu     (volunteer)');
+  console.log('     mei@skyline.edu        (volunteer)');
   console.log('     david@skyline.edu      (student/active)');
   console.log('     alex@skyline.edu       (student/none)');
   console.log('══════════════════════════════════════════\n');

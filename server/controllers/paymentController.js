@@ -7,6 +7,7 @@ const Event = require('../models/Event');
 const Product = require('../models/Product');
 const Transaction = require('../models/Transaction');
 const { generateOrderNumber, generateTicketCode } = require('../utils/generateCode');
+const { isValidObjectId, isPositiveInteger, isNonNegativeNumber } = require('../utils/validation');
 
 const razorpayKeyId = process.env.RAZORPAY_KEY_ID || '';
 const razorpayKeySecret = process.env.RAZORPAY_KEY_SECRET || '';
@@ -60,6 +61,9 @@ exports.createRazorpayOrder = async (req, res) => {
           message: 'itemId (productId) and variant (with size) are required for merchandise orders.',
         });
       }
+      if (!isValidObjectId(itemId) || !isPositiveInteger(quantity)) {
+        return res.status(400).json({ success: false, data: null, message: 'A valid product and positive integer quantity are required.' });
+      }
 
       if (req.user.membershipStatus !== 'active') {
         return res.status(403).json({
@@ -90,7 +94,7 @@ exports.createRazorpayOrder = async (req, res) => {
         });
       }
 
-      const qty = Math.max(1, Number(quantity));
+      const qty = Number(quantity);
       if (matchedVariant.stock < qty) {
         return res.status(400).json({
           success: false,
@@ -100,6 +104,9 @@ exports.createRazorpayOrder = async (req, res) => {
       }
 
       totalAmountInRupees = product.basePrice * qty;
+      if (!isNonNegativeNumber(totalAmountInRupees)) {
+        return res.status(400).json({ success: false, data: null, message: 'Product price is invalid.' });
+      }
       description = `Merchandise Order: ${product.name} (Qty: ${qty})`;
     } else if (paymentType === 'ticket') {
       if (!itemId) {
@@ -108,6 +115,9 @@ exports.createRazorpayOrder = async (req, res) => {
           data: null,
           message: 'itemId (eventId) is required for purchasing tickets.',
         });
+      }
+      if (!isValidObjectId(itemId)) {
+        return res.status(400).json({ success: false, data: null, message: 'A valid event is required for ticket purchases.' });
       }
 
       const event = await Event.findById(itemId);
@@ -227,6 +237,15 @@ exports.verifyPaymentSignature = async (req, res) => {
         message: 'Missing required Razorpay parameters for verification.',
       });
     }
+    if (!['membership', 'merch', 'ticket'].includes(paymentType) ||
+        (paymentType !== 'membership' && !isValidObjectId(itemId)) ||
+        (paymentType === 'merch' && !isPositiveInteger(quantity))) {
+      return res.status(400).json({
+        success: false,
+        data: null,
+        message: 'Invalid payment verification details.',
+      });
+    }
 
     const cleanPaymentId = String(razorpay_payment_id).trim();
 
@@ -321,7 +340,7 @@ exports.verifyPaymentSignature = async (req, res) => {
         return res.status(400).json({ success: false, data: null, message: 'Invalid product variant.' });
       }
 
-      const qty = Math.max(1, Number(quantity));
+      const qty = Number(quantity);
       if (matchedVariant.stock < qty) {
         return res.status(400).json({ success: false, data: null, message: 'Insufficient stock.' });
       }
@@ -377,6 +396,9 @@ exports.verifyPaymentSignature = async (req, res) => {
       const isMember = req.user.membershipStatus === 'active';
       const ticketType = isMember ? 'member' : 'non-member';
       const price = isMember ? event.memberPrice : event.nonMemberPrice;
+      if (!isNonNegativeNumber(price)) {
+        return res.status(400).json({ success: false, data: null, message: 'Event price is invalid.' });
+      }
 
       let ticketCode = generateTicketCode();
       while (await Ticket.findOne({ ticketCode })) {

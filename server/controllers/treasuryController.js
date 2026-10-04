@@ -1,4 +1,5 @@
 const Transaction = require('../models/Transaction');
+const { isPositiveNumber } = require('../utils/validation');
 
 // GET /api/treasury/summary (Treasurer & Officer)
 exports.getSummary = async (req, res) => {
@@ -107,7 +108,10 @@ exports.createManualTransaction = async (req, res) => {
   try {
     const { type, category, amount, description } = req.body;
 
-    if (!type || !category || amount === undefined || !description) {
+    if (!['income', 'expense'].includes(type) ||
+        !['dues', 'ticket_sale', 'merch_sale', 'reimbursement', 'other'].includes(category) ||
+        amount === undefined || !description?.trim() ||
+        !isPositiveNumber(amount) || description.trim().length > 2000) {
       return res.status(400).json({
         success: false,
         data: null,
@@ -126,7 +130,7 @@ exports.createManualTransaction = async (req, res) => {
     const transaction = await Transaction.create({
       type,
       category,
-      amount: Math.abs(Number(amount)),
+      amount: Number(amount),
       description: description.trim(),
       createdBy: req.user._id,
     });

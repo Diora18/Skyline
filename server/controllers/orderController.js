@@ -2,6 +2,7 @@ const Order = require('../models/Order');
 const Product = require('../models/Product');
 const Transaction = require('../models/Transaction');
 const { generateOrderNumber } = require('../utils/generateCode');
+const { isValidObjectId, isPositiveInteger, isValidUrl } = require('../utils/validation');
 
 // POST /api/orders
 exports.createOrder = async (req, res) => {
@@ -14,6 +15,10 @@ exports.createOrder = async (req, res) => {
         data: null,
         message: 'productId and variant (with size) are required to place an order.',
       });
+    }
+    if (!isValidObjectId(productId) || !isPositiveInteger(quantity) || Number(quantity) > 100 ||
+        typeof variant.size !== 'string' || (variant.color !== undefined && typeof variant.color !== 'string')) {
+      return res.status(400).json({ success: false, data: null, message: 'Invalid product, variant, or quantity. Quantity must be an integer from 1 to 100.' });
     }
 
     // Verify active membership
@@ -47,7 +52,7 @@ exports.createOrder = async (req, res) => {
       });
     }
 
-    const orderQty = Math.max(1, Number(quantity));
+    const orderQty = Number(quantity);
     if (matchedVariant.stock < orderQty) {
       return res.status(400).json({
         success: false,

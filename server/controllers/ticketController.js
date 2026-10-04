@@ -151,7 +151,7 @@ exports.getEventTickets = async (req, res) => {
       user: req.user._id,
       status: 'approved',
     });
-    const isAuthorized = ['officer', 'treasurer', 'volunteer'].includes(req.user.role) ||
+    const isAuthorized = req.user.role === 'officer' ||
       canManageEvent(event, req.user._id) ||
       Boolean(hasApprovedAssignment);
 
@@ -219,7 +219,7 @@ exports.scanTicket = async (req, res) => {
       user: req.user._id,
       status: 'approved',
     });
-    const isAuthorized = ['officer', 'volunteer'].includes(req.user.role) ||
+    const isAuthorized = req.user.role === 'officer' ||
       canManageEvent(ticket.event, req.user._id) ||
       Boolean(hasApprovedAssignment);
 

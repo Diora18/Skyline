@@ -1,4 +1,5 @@
 const Product = require('../models/Product');
+const { isNonNegativeNumber, isNonNegativeInteger, isValidUrl } = require('../utils/validation');
 
 // GET /api/products
 exports.getProducts = async (req, res) => {
@@ -63,12 +64,23 @@ exports.createProduct = async (req, res) => {
   try {
     const { name, description, image, basePrice, category, variants } = req.body;
 
-    if (!name || basePrice === undefined || !category) {
+    if (!name || String(name).trim().length > 160 || String(description || '').length > 3000 ||
+        basePrice === undefined || !isNonNegativeNumber(basePrice) || !category ||
+        (image && !isValidUrl(image)) || (variants !== undefined && !Array.isArray(variants))) {
       return res.status(400).json({
         success: false,
         data: null,
         message: 'Name, basePrice, and category are required',
       });
+    }
+
+    const normalizedVariants = Array.isArray(variants) && variants.length > 0 ? variants : [{ size: 'ONE_SIZE', color: 'Default', stock: 10, sold: 0 }];
+    if (normalizedVariants.some((variant) =>
+      !variant || typeof variant.size !== 'string' ||
+      !Number.isInteger(Number(variant.stock ?? 0)) || Number(variant.stock ?? 0) < 0 ||
+      !Number.isInteger(Number(variant.sold ?? 0)) || Number(variant.sold ?? 0) < 0
+    )) {
+      return res.status(400).json({ success: false, data: null, message: 'Each product variant must have valid non-negative integer stock and sold values.' });
     }
 
     const product = await Product.create({
@@ -77,9 +89,7 @@ exports.createProduct = async (req, res) => {
       image: image || '',
       basePrice: Number(basePrice),
       category,
-      variants: Array.isArray(variants) && variants.length > 0
-        ? variants
-        : [{ size: 'ONE_SIZE', color: 'Default', stock: 10, sold: 0 }],
+      variants: normalizedVariants,
       isActive: true,
     });
 
@@ -107,6 +117,20 @@ exports.updateProduct = async (req, res) => {
         data: null,
         message: 'Product not found',
       });
+    }
+
+    const { name, description, image, basePrice, category, variants } = req.body;
+    const validCategories = ['hoodie', 'tshirt', 'cap', 'sticker', 'other'];
+    if ((name !== undefined && (!String(name).trim() || String(name).length > 160)) ||
+        (description !== undefined && String(description).length > 3000) ||
+        (image !== undefined && image && !isValidUrl(image)) ||
+        (basePrice !== undefined && !isNonNegativeNumber(basePrice)) ||
+        (category !== undefined && !validCategories.includes(category)) ||
+        (variants !== undefined && (!Array.isArray(variants) || variants.some((variant) =>
+          !variant || typeof variant.size !== 'string' ||
+          !isNonNegativeInteger(variant.stock ?? 0) || !isNonNegativeInteger(variant.sold ?? 0)
+        )))) {
+      return res.status(400).json({ success: false, data: null, message: 'Invalid product details.' });
     }
 
     const allowedUpdates = ['name', 'description', 'image', 'basePrice', 'category', 'variants', 'isActive'];
@@ -137,7 +161,9 @@ exports.updateVariantStock = async (req, res) => {
   try {
     const { variantIndex, stock } = req.body;
 
-    if (variantIndex === undefined || stock === undefined) {
+    if (variantIndex === undefined || stock === undefined ||
+        !Number.isInteger(Number(variantIndex)) || Number(variantIndex) < 0 ||
+        !isNonNegativeInteger(stock)) {
       return res.status(400).json({
         success: false,
         data: null,

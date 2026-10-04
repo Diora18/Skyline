@@ -107,7 +107,7 @@ export default function Register() {
               </div>
               <div className="flex flex-col gap-2">
                 <label htmlFor="phone" className="text-sm font-semibold">Phone Number</label>
-                <input id="phone" name="phone" type="tel" inputMode="tel" pattern="[+0-9() .-]{7,25}" title="Enter a valid phone number with 7 to 15 digits" placeholder="(555) 123-4567" value={formData.phone} onChange={handleChange} className="h-11 rounded-xl border border-input bg-background px-3 outline-none placeholder:text-muted-foreground/70 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30" />
+                <input id="phone" name="phone" type="tel" inputMode="tel" pattern="\+?[0-9() .-]{7,25}" title="Enter a valid phone number with 7 to 15 digits" placeholder="(555) 123-4567" value={formData.phone} onChange={handleChange} className="h-11 rounded-xl border border-input bg-background px-3 outline-none placeholder:text-muted-foreground/70 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30" />
               </div>
               <div className="flex flex-col gap-2">
                 <label htmlFor="major" className="text-sm font-semibold">Major</label>

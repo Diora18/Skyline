@@ -1,4 +1,5 @@
 const TeamMember = require('../models/TeamMember');
+const { isValidObjectId } = require('../utils/validation');
 const User = require('../models/User');
 
 const generateInitials = (name) => {
@@ -41,7 +42,9 @@ exports.addTeamMember = async (req, res) => {
   try {
     const { name, role, major, email, userId } = req.body;
 
-    if (!name || !role) {
+    if (!name || !role || String(name).trim().length > 120 || String(role).trim().length > 120 ||
+        (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) ||
+        (userId && !isValidObjectId(userId))) {
       return res.status(400).json({
         success: false,
         data: null,
@@ -102,10 +105,22 @@ exports.updateTeamMember = async (req, res) => {
       });
     }
 
+    if ((email !== undefined && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) ||
+        (name !== undefined && (!name.trim() || name.trim().length > 120)) ||
+        (role !== undefined && (!role.trim() || role.trim().length > 120))) {
+      return res.status(400).json({ success: false, data: null, message: 'Invalid team member name, role, or email.' });
+    }
+
     if (name) member.name = name.trim();
     if (role) member.role = role.trim();
+    if (major !== undefined && (typeof major !== 'string' || major.length > 160)) {
+      return res.status(400).json({ success: false, data: null, message: 'Major must be a text value no longer than 160 characters.' });
+    }
     if (major !== undefined) member.major = major.trim();
     if (email !== undefined) member.email = email.trim();
+    if (initials !== undefined && (!/^[A-Za-z]{1,4}$/.test(initials.trim()))) {
+      return res.status(400).json({ success: false, data: null, message: 'Initials must contain 1 to 4 letters.' });
+    }
     if (initials) member.initials = initials.trim();
 
     await member.save();

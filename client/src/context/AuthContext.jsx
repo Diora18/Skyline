@@ -166,7 +166,8 @@ export const AuthProvider = ({ children }) => {
   const isAdmin = isOfficer;
   const isExecutive = isTreasurer || isOfficer;
   const isEventManager = managedEventIds.length > 0;
-  const canScan = isVolunteer || isOfficer || isEventManager;
+  // Volunteers only receive scanner access through an approved event link.
+  const canScan = isOfficer || isEventManager;
   const canAccessTreasury = isExecutive;
   const canManageMembers = isOfficer;
   const canSubmitExpenses = isVolunteer || isExecutive;

@@ -3,13 +3,20 @@ const Project = require('../models/Project');
 const User = require('../models/User');
 const Event = require('../models/Event');
 const { canManageEvent } = require('../middleware/roleCheck');
+const { isValidObjectId, isValidDate } = require('../utils/validation');
 
 // POST /api/tasks (Officer or manager of the project's linked event)
 exports.createTask = async (req, res) => {
   try {
     const { title, description, project, assignee, priority, dueDate, supplies } = req.body;
 
-    if (!title || !project) {
+    if (!title || !project || String(title).trim().length > 160 ||
+        (description && String(description).length > 3000) ||
+        !isValidObjectId(project) ||
+        (assignee && !isValidObjectId(assignee)) ||
+        !['low', 'medium', 'high'].includes(priority || 'medium') ||
+        (dueDate && !isValidDate(dueDate)) ||
+        (supplies !== undefined && (!Array.isArray(supplies) || supplies.some((item) => typeof item !== 'string' || item.length > 160)))) {
       return res.status(400).json({
         success: false,
         data: null,
