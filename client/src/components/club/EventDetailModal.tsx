@@ -18,6 +18,7 @@ export function EventDetailModal({ event, onClose, onTicketPurchased }: any) {
   const [volunteerLoading, setVolunteerLoading] = useState(false);
   const [volunteerError, setVolunteerError] = useState('');
   const [applying, setApplying] = useState(false);
+  const [showRazorpay, setShowRazorpay] = useState(false);
   const [currentTime] = useState(() => Date.now());
 
   useEffect(() => {
