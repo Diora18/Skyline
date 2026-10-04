@@ -3,6 +3,7 @@ import announcementService from '@/services/announcementService';
 import { AuthContext } from '@/context/AuthContext';
 import { Megaphone, Plus, Trash2, Calendar, MailCheck, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { CustomSelect } from '@/components/ui/custom-select';
 
 export default function Announcements() {
   const { isOfficer } = useContext(AuthContext);
@@ -49,6 +50,7 @@ export default function Announcements() {
       setShowModal(false);
       setTitle('');
       setBody('');
+      setCategory('general');
       fetchAnnouncements();
     } catch (err) {
       alert(err.message || 'Failed to publish announcement');
@@ -190,17 +192,16 @@ export default function Announcements() {
 
               <div>
                 <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">Category</label>
-                <select
+                <CustomSelect
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
-                  className="w-full rounded-2xl border border-input bg-background px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 >
                   <option value="general">General</option>
                   <option value="event">Event Alert</option>
                   <option value="urgent">Urgent Notice</option>
                   <option value="merch">Merchandise Drop</option>
                   <option value="opportunity">Career & Opportunity</option>
-                </select>
+                </CustomSelect>
               </div>
 
               <div>

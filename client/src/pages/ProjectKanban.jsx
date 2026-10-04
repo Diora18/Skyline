@@ -7,6 +7,7 @@ import volunteerService from '@/services/volunteerService';
 import { AuthContext } from '@/context/AuthContext';
 import { FolderKanban, Plus, ChevronRight, ChevronLeft, Trash2, CheckCircle2, Circle, Clock, AlertCircle, Loader2, User, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { CustomSelect } from '@/components/ui/custom-select';
 
 export default function ProjectKanban() {
   const { id } = useParams();
@@ -66,34 +67,42 @@ export default function ProjectKanban() {
 
     const loadVolunteers = async () => {
       try {
-        if (isOfficer) {
-          const response = await memberService.getMembers({ limit: 100 });
-          if (!cancelled) {
-            setVolunteers((response.data.members || []).filter((member) => member.role === 'volunteer'));
-          }
-          return;
-        }
-
-        if (!linkedEventId || !canManageProjectTasks) {
+        if (!linkedEventId) {
           if (!cancelled) setVolunteers([]);
           return;
         }
 
         const response = await volunteerService.getEventApplications(linkedEventId);
-        const applicants = (response.data.applications || [])
-          .map((application) => application.user)
-          .filter((member) => member?.role === 'volunteer');
-        const eligibleVolunteers = [...new Map(applicants.map((member) => [member._id, member])).values()];
-        if (!cancelled) setVolunteers(eligibleVolunteers);
+        const applications = response.data.applications || [];
+        const approvedApplications = applications.filter(
+          (app) => app.status === 'approved' || app.status === 'completed'
+        );
+
+        const eligibleVolunteers = approvedApplications
+          .filter((app) => app.user)
+          .map((app) => ({
+            _id: app.user._id,
+            name: app.user.name,
+            email: app.user.email,
+            responsibility: app.responsibility || '',
+          }));
+
+        const uniqueVolunteers = [
+          ...new Map(eligibleVolunteers.map((v) => [v._id, v])).values(),
+        ];
+
+        if (!cancelled) setVolunteers(uniqueVolunteers);
       } catch (err) {
-        console.error('Failed to load eligible volunteer assignments', err);
+        console.error('Failed to load eligible approved volunteer assignments', err);
         if (!cancelled) setVolunteers([]);
       }
     };
 
     loadVolunteers();
-    return () => { cancelled = true; };
-  }, [canManageProjectTasks, isOfficer, linkedEventId, project]);
+    return () => {
+      cancelled = true;
+    };
+  }, [linkedEventId, project]);
 
   const handleUpdateStatus = async (taskId, newStatus) => {
     try {
@@ -324,33 +333,35 @@ export default function ProjectKanban() {
 
               <div>
                 <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">Priority</label>
-                <select
+                <CustomSelect
                   value={taskPriority}
                   onChange={(e) => setTaskPriority(e.target.value)}
-                  className="w-full rounded-2xl border border-input bg-background px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 >
                   <option value="low">Low</option>
                   <option value="medium">Medium</option>
                   <option value="high">High</option>
-                </select>
+                </CustomSelect>
               </div>
 
               <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">Assign to Volunteer</label>
-                <select
+                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">Assign to Approved Volunteer</label>
+                <CustomSelect
                   value={assignee}
                   onChange={(e) => setAssignee(e.target.value)}
                   required={!isOfficer}
-                  className="w-full rounded-2xl border border-input bg-background px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 >
-                  {isOfficer && <option value="">Unassigned</option>}
+                  <option value="">{isOfficer ? 'Unassigned' : 'Select Approved Volunteer...'}</option>
                   {volunteers.map((volunteer) => (
-                    <option key={volunteer._id} value={volunteer._id}>{volunteer.name}</option>
+                    <option key={volunteer._id} value={volunteer._id}>
+                      {volunteer.name}{volunteer.responsibility ? ` (${volunteer.responsibility})` : ''}
+                    </option>
                   ))}
-                </select>
-                {!isOfficer && volunteers.length === 0 && (
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    No users with the Volunteer role have applied to this event yet.
+                </CustomSelect>
+                {volunteers.length === 0 && (
+                  <p className="mt-1 text-xs text-amber-600 dark:text-amber-400 font-medium">
+                    {linkedEventId
+                      ? 'No approved volunteers for this event yet. Accept requests in Event Manager → Event Volunteers.'
+                      : 'This project is not linked to an event with volunteer applications.'}
                   </p>
                 )}
               </div>
@@ -399,9 +410,11 @@ export default function ProjectKanban() {
 }
 
 function KanbanColumn({ title, count, color, children }) {
+  const hasTasks = count > 0;
+
   return (
-    <div className="flex flex-col rounded-3xl border border-border bg-card/60 p-4 shadow-sm min-h-125">
-      <div className="flex items-center justify-between border-b border-border pb-3 mb-4">
+    <div className="flex flex-col h-[520px] rounded-3xl border border-border bg-card/60 p-4 shadow-sm overflow-hidden">
+      <div className="flex items-center justify-between border-b border-border pb-3 mb-4 shrink-0">
         <div className="flex items-center gap-2">
           <h2 className="font-extrabold text-base">{title}</h2>
           <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${color}`}>
@@ -409,7 +422,17 @@ function KanbanColumn({ title, count, color, children }) {
           </span>
         </div>
       </div>
-      <div className="space-y-4 flex-1">{children}</div>
+      <div className="flex-1 overflow-y-auto pr-1 space-y-4 custom-scrollbar">
+        {hasTasks ? (
+          children
+        ) : (
+          <div className="h-full flex flex-col items-center justify-center p-6 text-center rounded-2xl border border-dashed border-border/80 bg-background/40 text-muted-foreground">
+            <FolderKanban className="size-8 text-muted-foreground/40 mb-2" />
+            <p className="text-xs font-bold text-muted-foreground">No task assigned</p>
+            <p className="text-[11px] text-muted-foreground/70 mt-0.5">There are no tasks in {title.toLowerCase()}</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

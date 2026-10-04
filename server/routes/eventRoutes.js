@@ -12,7 +12,7 @@ router.get('/:id/volunteers', auth, eventVolunteerController.getEventApplication
 router.patch('/:id/volunteers/:applicationId', auth, eventVolunteerController.updateApplication);
 router.post('/', auth, roleCheck('officer'), eventController.createEvent);
 router.patch('/:id', auth, eventController.updateEvent); // Controller verifies officer OR event manager
-router.delete('/:id', auth, roleCheck('officer'), eventController.deleteEvent);
+router.delete('/:id', auth, eventController.deleteEvent);
 router.patch('/:id/managers', auth, roleCheck('officer'), eventController.manageEventManagers);
 
 module.exports = router;

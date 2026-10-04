@@ -47,6 +47,7 @@ app.use('/api/tasks', require('./routes/taskRoutes'));
 app.use('/api/treasury', require('./routes/treasuryRoutes'));
 app.use('/api/expenses', require('./routes/expenseRoutes'));
 app.use('/api/announcements', require('./routes/announcementRoutes'));
+app.use('/api/team', require('./routes/teamRoutes'));
 
 // 404 Route Not Found handler
 app.use((req, res) => {

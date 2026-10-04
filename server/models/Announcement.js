@@ -3,7 +3,12 @@ const mongoose = require('mongoose');
 const announcementSchema = new mongoose.Schema({
   title: { type: String, required: true, trim: true },
   body: { type: String, required: true },
-  category: { type: String, enum: ['meeting', 'deadline', 'update', 'urgent'], required: true },
+  category: { 
+    type: String, 
+    enum: ['general', 'event', 'urgent', 'merch', 'opportunity', 'meeting', 'deadline', 'update'], 
+    default: 'general',
+    required: true 
+  },
   postedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   emailSent: { type: Boolean, default: false },  // whether email blast was triggered
 }, { timestamps: true });

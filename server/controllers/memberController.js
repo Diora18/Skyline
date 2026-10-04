@@ -4,11 +4,15 @@ const Transaction = require('../models/Transaction');
 // GET /api/members (Officer only)
 exports.getMembers = async (req, res) => {
   try {
-    const { status, search, page = 1, limit = 20 } = req.query;
+    const { status, role, search, page = 1, limit = 100 } = req.query;
     const query = {};
 
     if (status && status !== 'all') {
       query.membershipStatus = status;
+    }
+
+    if (role && role !== 'all') {
+      query.role = role;
     }
 
     if (search) {

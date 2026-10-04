@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
+import { CustomSelect } from '@/components/ui/custom-select';
 import { ArrowRight } from 'lucide-react';
 
 const years = Array.from({ length: 5 }, (_, index) => new Date().getFullYear() + index);
@@ -110,17 +111,31 @@ export default function Register() {
               </div>
               <div className="flex flex-col gap-2">
                 <label htmlFor="major" className="text-sm font-semibold">Major</label>
-                <select id="major" name="major" required value={formData.major} onChange={handleChange} className="h-11 rounded-xl border border-input bg-background px-3 outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30">
+                <CustomSelect
+                  id="major"
+                  name="major"
+                  required
+                  placeholder="Select Major"
+                  value={formData.major}
+                  onChange={handleChange}
+                >
                   <option value="" disabled>Select Major</option>
                   {majors.map(m => <option key={m} value={m}>{m}</option>)}
-                </select>
+                </CustomSelect>
               </div>
               <div className="flex flex-col gap-2">
                 <label htmlFor="gradYear" className="text-sm font-semibold">Graduation Year</label>
-                <select id="gradYear" name="gradYear" required value={formData.gradYear} onChange={handleChange} className="h-11 rounded-xl border border-input bg-background px-3 outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30">
+                <CustomSelect
+                  id="gradYear"
+                  name="gradYear"
+                  required
+                  placeholder="Select Year"
+                  value={formData.gradYear}
+                  onChange={handleChange}
+                >
                   <option value="" disabled>Select Year</option>
                   {years.map(y => <option key={y} value={y}>{y}</option>)}
-                </select>
+                </CustomSelect>
               </div>
               <div className="flex flex-col gap-2">
                 <label htmlFor="password" className="text-sm font-semibold">Password</label>

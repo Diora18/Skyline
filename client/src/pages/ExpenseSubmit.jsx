@@ -5,6 +5,7 @@ import projectService from '@/services/projectService';
 import eventService from '@/services/eventService';
 import { CheckCircle2, Loader2, AlertCircle, ArrowLeft, CalendarDays, ReceiptText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { CustomSelect } from '@/components/ui/custom-select';
 
 export default function ExpenseSubmit() {
   const navigate = useNavigate();
@@ -175,10 +176,9 @@ export default function ExpenseSubmit() {
 
               <div>
                 <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">Category</label>
-                <select
+                <CustomSelect
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
-                  className="w-full rounded-2xl border border-input bg-background px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 >
                   <option value="supplies">Supplies</option>
                   <option value="food">Food</option>
@@ -186,7 +186,7 @@ export default function ExpenseSubmit() {
                   <option value="transport">Transport</option>
                   <option value="venue">Venue</option>
                   <option value="other">Other</option>
-                </select>
+                </CustomSelect>
               </div>
             </div>
 
@@ -203,10 +203,9 @@ export default function ExpenseSubmit() {
 
             {!eventId && <div>
               <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">Related Project</label>
-              <select
+              <CustomSelect
                 value={linkedProject}
                 onChange={(e) => setLinkedProject(e.target.value)}
-                className="w-full rounded-2xl border border-input bg-background px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 <option value="">Not linked to a project</option>
                 {eventContext?.linkedProject && !projects.some((project) =>
@@ -219,7 +218,7 @@ export default function ExpenseSubmit() {
                 {projects.map((project) => (
                   <option key={project._id} value={project._id}>{project.title}</option>
                 ))}
-              </select>
+              </CustomSelect>
             </div>}
 
             <div>

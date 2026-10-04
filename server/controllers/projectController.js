@@ -1,5 +1,6 @@
 const Project = require('../models/Project');
 const Task = require('../models/Task');
+const Event = require('../models/Event');
 
 // GET /api/projects
 exports.getProjects = async (req, res) => {
@@ -103,6 +104,10 @@ exports.createProject = async (req, res) => {
       status: 'active',
       createdBy: req.user._id,
     });
+
+    if (linkedEvent) {
+      await Event.findByIdAndUpdate(linkedEvent, { linkedProject: project._id });
+    }
 
     res.status(201).json({
       success: true,

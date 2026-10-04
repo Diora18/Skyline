@@ -6,6 +6,7 @@ import expenseService from '@/services/expenseService';
 import ticketService from '@/services/ticketService';
 import { DollarSign, ArrowUpRight, ArrowDownRight, Wallet, Receipt, Plus, Loader2, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { CustomSelect } from '@/components/ui/custom-select';
 
 export default function Treasury() {
   const [summary, setSummary] = useState(null);
@@ -298,29 +299,27 @@ export default function Treasury() {
             <form onSubmit={handleManualTransaction} className="space-y-4 mt-4">
               <div>
                 <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">Type</label>
-                <select
+                <CustomSelect
                   value={type}
                   onChange={(e) => setType(e.target.value)}
-                  className="w-full rounded-2xl border border-input bg-background px-4 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary"
                 >
                   <option value="income">Income (+ Cash Inflow)</option>
                   <option value="expense">Expense (- Cash Outflow)</option>
-                </select>
+                </CustomSelect>
               </div>
 
               <div>
                 <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">Category</label>
-                <select
+                <CustomSelect
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
-                  className="w-full rounded-2xl border border-input bg-background px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 >
                   <option value="dues">Membership Dues</option>
                   <option value="ticket_sale">Ticket Sale</option>
                   <option value="merch_sale">Merch Sale</option>
                   <option value="reimbursement">Reimbursement</option>
                   <option value="other">Other Adjustment</option>
-                </select>
+                </CustomSelect>
               </div>
 
               <div>

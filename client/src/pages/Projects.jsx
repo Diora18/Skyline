@@ -1,8 +1,11 @@
 import { useState, useEffect, useContext, useCallback } from 'react';
 import projectService from '@/services/projectService';
+import eventService from '@/services/eventService';
 import { AuthContext } from '@/context/AuthContext';
 import { FolderKanban, Calendar, CheckSquare, Plus, ArrowRight, Loader2, Link2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { CustomSelect } from '@/components/ui/custom-select';
+import { DateTimePicker } from '@/components/ui/date-time-picker';
 import { useNavigate } from 'react-router-dom';
 
 export default function Projects() {
@@ -15,6 +18,8 @@ export default function Projects() {
   const [newTitle, setNewTitle] = useState('');
   const [newDescription, setNewDescription] = useState('');
   const [newDeadline, setNewDeadline] = useState('');
+  const [eventsList, setEventsList] = useState([]);
+  const [selectedLinkedEvent, setSelectedLinkedEvent] = useState('');
   const [creating, setCreating] = useState(false);
 
   const fetchProjects = useCallback(async () => {
@@ -65,6 +70,14 @@ export default function Projects() {
     fetchProjects();
   }, [fetchProjects]);
 
+  useEffect(() => {
+    if (showCreateModal && isOfficer) {
+      eventService.getEvents({ limit: 100 })
+        .then((res) => setEventsList(res.data.events || []))
+        .catch((err) => console.error('Failed to load events for linking', err));
+    }
+  }, [showCreateModal, isOfficer]);
+
   const handleCreateProject = async (e) => {
     e.preventDefault();
     if (!newTitle.trim()) return;
@@ -75,11 +88,13 @@ export default function Projects() {
         title: newTitle,
         description: newDescription,
         deadline: newDeadline || null,
+        linkedEvent: selectedLinkedEvent || null,
       });
       setShowCreateModal(false);
       setNewTitle('');
       setNewDescription('');
       setNewDeadline('');
+      setSelectedLinkedEvent('');
       fetchProjects();
     } catch (err) {
       alert(err.message || 'Failed to create initiative');
@@ -228,12 +243,30 @@ export default function Projects() {
               </div>
 
               <div>
+                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">Link to Event (Assign Volunteers)</label>
+                <CustomSelect
+                  value={selectedLinkedEvent}
+                  onChange={(e) => setSelectedLinkedEvent(e.target.value)}
+                >
+                  <option value="">No Linked Event (Standalone Project)</option>
+                  {eventsList.map((evt) => (
+                    <option key={evt._id} value={evt._id}>
+                      {evt.title} ({evt.category ? evt.category.charAt(0).toUpperCase() + evt.category.slice(1) : 'Event'})
+                    </option>
+                  ))}
+                </CustomSelect>
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  Linking an event allows assigning volunteers who applied for that event to Kanban tasks.
+                </p>
+              </div>
+
+              <div>
                 <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">Target Deadline</label>
-                <input
-                  type="date"
+                <DateTimePicker
+                  dateOnly
                   value={newDeadline}
                   onChange={(e) => setNewDeadline(e.target.value)}
-                  className="w-full rounded-2xl border border-input bg-background px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  placeholder="Select target deadline date..."
                 />
               </div>
 

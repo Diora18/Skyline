@@ -4,6 +4,7 @@ import { PerksSection } from '@/components/club/perks-section'
 import { TeamSection } from '@/components/club/team-section'
 import { GallerySection } from '@/components/club/gallery-section'
 import { FaqSection } from '@/components/club/faq-section'
+import { SiteFooter } from '@/components/club/site-footer'
 
 export default function Home() {
   return (
@@ -14,6 +15,7 @@ export default function Home() {
       <TeamSection />
       <GallerySection />
       <FaqSection />
+      <SiteFooter />
     </main>
   )
 }

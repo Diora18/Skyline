@@ -1,6 +1,5 @@
 import { Routes, Route } from 'react-router-dom';
-import { SiteHeader } from './components/club/site-header';
-import { SiteFooter } from './components/club/site-footer';
+import { Sidebar } from './components/layout/Sidebar';
 import Home from './pages/Home';
 import Events from './pages/Events';
 import Merch from './pages/Merch';
@@ -38,144 +37,150 @@ const NotFound = () => (
 
 function App() {
   return (
-    <div className="min-h-screen flex flex-col font-sans">
-      <SiteHeader />
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/event" element={<Events />} />
-        <Route path="/events" element={<Events />} />
-        <Route path="/merch" element={<Merch />} />
-        <Route path="/announcements" element={<Announcements />} />
-        <Route path="/perks" element={<Perks />} />
-        <Route path="/team" element={<Team />} />
-        <Route path="/faq" element={<Faq />} />
-        <Route path="/membership/join" element={<JoinMembership />} />
-        <Route
-          path="/projects"
-          element={
-            <ProtectedRoute>
-              <Projects />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/projects/:id"
-          element={
-            <ProtectedRoute>
-              <ProjectKanban />
-            </ProtectedRoute>
-          }
-        />
+    <div className="min-h-screen flex flex-col md:flex-row bg-background text-foreground font-sans">
+      {/* Docked Left Sidebar on Desktop / Drawer on Mobile */}
+      <Sidebar />
 
-        {/* Protected member routes */}
-        <Route
-          path="/tickets"
-          element={
-            <ProtectedRoute>
-              <Tickets />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/volunteering"
-          element={
-            <ProtectedRoute>
-              <MyVolunteering />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/orders"
-          element={
-            <ProtectedRoute>
-              <Orders />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/expenses/submit"
-          element={
-            <ProtectedRoute requireEventExpense>
-              <ExpenseSubmit />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/expenses/my"
-          element={
-            <ProtectedRoute>
-              <MyExpenses />
-            </ProtectedRoute>
-          }
-        />
+      {/* Main Content Viewport */}
+      <div className="flex-1 flex flex-col min-w-0 min-h-screen">
+        <main className="flex-1">
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/event" element={<Events />} />
+            <Route path="/events" element={<Events />} />
+            <Route path="/merch" element={<Merch />} />
+            <Route path="/announcements" element={<Announcements />} />
+            <Route path="/perks" element={<Perks />} />
+            <Route path="/team" element={<Team />} />
+            <Route path="/faq" element={<Faq />} />
+            <Route path="/membership/join" element={<JoinMembership />} />
+            <Route
+              path="/projects"
+              element={
+                <ProtectedRoute>
+                  <Projects />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/projects/:id"
+              element={
+                <ProtectedRoute>
+                  <ProjectKanban />
+                </ProtectedRoute>
+              }
+            />
 
-        {/* Volunteer, Treasurer & Officer Door Scanner */}
-        <Route
-          path="/admin/scanner"
-          element={
-            <ProtectedRoute requireEventScanner>
-              <Scanner />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/scanner"
-          element={
-            <ProtectedRoute requireScanner>
-              <Scanner />
-            </ProtectedRoute>
-          }
-        />
+            {/* Protected member routes */}
+            <Route
+              path="/tickets"
+              element={
+                <ProtectedRoute>
+                  <Tickets />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/volunteering"
+              element={
+                <ProtectedRoute>
+                  <MyVolunteering />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/orders"
+              element={
+                <ProtectedRoute>
+                  <Orders />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/expenses/submit"
+              element={
+                <ProtectedRoute requireEventExpense>
+                  <ExpenseSubmit />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/expenses/my"
+              element={
+                <ProtectedRoute>
+                  <MyExpenses />
+                </ProtectedRoute>
+              }
+            />
 
-        {/* Treasurer & Officer Financial Management */}
-        <Route
-          path="/admin/treasury"
-          element={
-            <ProtectedRoute requireTreasury>
-              <Treasury />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/expenses"
-          element={
-            <ProtectedRoute requireTreasury>
-              <AdminExpenses />
-            </ProtectedRoute>
-          }
-        />
+            {/* Volunteer, Treasurer & Officer Door Scanner */}
+            <Route
+              path="/admin/scanner"
+              element={
+                <ProtectedRoute requireEventScanner>
+                  <Scanner />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/scanner"
+              element={
+                <ProtectedRoute requireScanner>
+                  <Scanner />
+                </ProtectedRoute>
+              }
+            />
 
-        {/* Officer Administration Routes */}
-        <Route
-          path="/admin/orders"
-          element={
-            <ProtectedRoute requireOfficer>
-              <AdminOrders />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/members"
-          element={
-            <ProtectedRoute requireOfficer>
-              <Members />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/inventory"
-          element={
-            <ProtectedRoute requireOfficer>
-              <Inventory />
-            </ProtectedRoute>
-          }
-        />
+            {/* Treasurer & Officer Financial Management */}
+            <Route
+              path="/admin/treasury"
+              element={
+                <ProtectedRoute requireTreasury>
+                  <Treasury />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/expenses"
+              element={
+                <ProtectedRoute requireTreasury>
+                  <AdminExpenses />
+                </ProtectedRoute>
+              }
+            />
 
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-      <SiteFooter />
+            {/* Officer Administration Routes */}
+            <Route
+              path="/admin/orders"
+              element={
+                <ProtectedRoute requireOfficer>
+                  <AdminOrders />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/members"
+              element={
+                <ProtectedRoute requireOfficer>
+                  <Members />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/inventory"
+              element={
+                <ProtectedRoute requireOfficer>
+                  <Inventory />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </main>
+      </div>
     </div>
   );
 }

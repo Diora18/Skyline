@@ -1,6 +1,8 @@
 const Event = require('../models/Event');
 const Project = require('../models/Project');
 const User = require('../models/User');
+const Ticket = require('../models/Ticket');
+const EventVolunteerApplication = require('../models/EventVolunteerApplication');
 const { canManageEvent } = require('../middleware/roleCheck');
 
 // GET /api/events
@@ -207,7 +209,7 @@ exports.updateEvent = async (req, res) => {
   }
 };
 
-// DELETE /api/events/:id (Officer only)
+// DELETE /api/events/:id (Officer or Event Manager)
 exports.deleteEvent = async (req, res) => {
   try {
     const event = await Event.findById(req.params.id);
@@ -219,6 +221,18 @@ exports.deleteEvent = async (req, res) => {
       });
     }
 
+    const isAuthorized = req.user.role === 'officer' || canManageEvent(event, req.user._id);
+    if (!isAuthorized) {
+      return res.status(403).json({
+        success: false,
+        data: null,
+        message: 'Forbidden: You do not have permission to delete this event.',
+      });
+    }
+
+    // Clean up associated tickets and volunteer applications
+    await Ticket.deleteMany({ event: event._id });
+    await EventVolunteerApplication.deleteMany({ event: event._id });
     await Event.findByIdAndDelete(req.params.id);
 
     res.status(200).json({

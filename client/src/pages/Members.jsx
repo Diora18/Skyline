@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import memberService from '@/services/memberService';
 import { Users, Search, ShieldCheck, Mail, UserCheck, Loader2, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { CustomSelect } from '@/components/ui/custom-select';
 
 export default function Members() {
   const [members, setMembers] = useState([]);
@@ -55,13 +56,14 @@ export default function Members() {
   };
 
   const filteredMembers = members.filter((m) => {
-    const query = search.toLowerCase();
-    return (
+    const query = search.trim().toLowerCase();
+    const matchesSearch =
+      !query ||
       m.name?.toLowerCase().includes(query) ||
       m.email?.toLowerCase().includes(query) ||
-      m.studentId?.toLowerCase().includes(query)||
-      m.role?.toLowerCase().includes(query)
-    );
+      m.studentId?.toLowerCase().includes(query);
+    const matchesRole = roleFilter === 'all' || m.role === roleFilter;
+    return matchesSearch && matchesRole;
   });
 
   return (
@@ -88,17 +90,18 @@ export default function Members() {
             />
           </div>
 
-          <select
-            value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value)}
-            className="rounded-full border border-input bg-background px-3 py-2 text-xs font-bold uppercase tracking-wider focus:outline-none focus:ring-2 focus:ring-primary"
-          >
-            <option value="all">All Roles</option>
-            <option value="student">Student</option>
-            <option value="volunteer">Volunteer</option>
-            <option value="treasurer">Treasurer</option>
-            <option value="officer">Officer</option>
-          </select>
+          <div className="w-44">
+            <CustomSelect
+              value={roleFilter}
+              onChange={(e) => setRoleFilter(e.target.value)}
+            >
+              <option value="all">All Roles</option>
+              <option value="student">Student</option>
+              <option value="volunteer">Volunteer</option>
+              <option value="treasurer">Treasurer</option>
+              <option value="officer">Officer</option>
+            </CustomSelect>
+          </div>
         </div>
       </div>
 
@@ -195,16 +198,15 @@ export default function Members() {
 
             <div>
               <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">Select Role</label>
-              <select
+              <CustomSelect
                 value={newRole}
                 onChange={(e) => setNewRole(e.target.value)}
-                className="w-full rounded-2xl border border-input bg-background px-4 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 <option value="student">Student (General Member)</option>
                 <option value="volunteer">Volunteer (Team Member)</option>
                 <option value="treasurer">Treasurer (Financial Lead)</option>
                 <option value="officer">Officer (Full Administrator)</option>
-              </select>
+              </CustomSelect>
             </div>
 
             <div className="flex justify-end gap-2 pt-2">

@@ -43,7 +43,7 @@ exports.getAnnouncements = async (req, res) => {
 // POST /api/announcements (Officer only)
 exports.createAnnouncement = async (req, res) => {
   try {
-    const { title, body, category = 'update', sendEmail = false } = req.body;
+    const { title, body, category = 'general', sendEmail = false } = req.body;
 
     if (!title || !body) {
       return res.status(400).json({
@@ -53,10 +53,12 @@ exports.createAnnouncement = async (req, res) => {
       });
     }
 
+    const validCategory = category ? String(category).toLowerCase() : 'general';
+
     const announcement = await Announcement.create({
       title: title.trim(),
       body: body.trim(),
-      category,
+      category: validCategory,
       postedBy: req.user._id,
       emailSent: Boolean(sendEmail),
     });
