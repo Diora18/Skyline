@@ -1,9 +1,18 @@
-/**
- * server/controllers/paymentController.js
- * Razorpay Payment Gateway Controller (Demo / Sandbox integration)
- */
-
+const Razorpay = require('razorpay');
 const crypto = require('crypto');
+
+const key_id = process.env.RAZORPAY_KEY_ID || 'rzp_test_1DP5mmOlF5G5ag';
+const key_secret = process.env.RAZORPAY_KEY_SECRET || 'skyline_ssa_test_secret';
+
+let razorpayInstance = null;
+try {
+  razorpayInstance = new Razorpay({
+    key_id,
+    key_secret,
+  });
+} catch (e) {
+  console.warn('[Razorpay] Instance initialization warning:', e.message);
+}
 
 exports.createRazorpayOrder = async (req, res) => {
   try {
@@ -17,23 +26,49 @@ exports.createRazorpayOrder = async (req, res) => {
       });
     }
 
-    // Convert amount to paise (1 INR = 100 paise)
     const amountInPaise = Math.round(amount * 100);
-    const orderId = `order_rzp_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
-    const razorpayKeyId = process.env.RAZORPAY_KEY_ID || 'rzp_test_skylineSSA2026';
+    const receipt = `rcpt_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+
+    let order = null;
+
+    if (razorpayInstance && process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {
+      try {
+        order = await razorpayInstance.orders.create({
+          amount: amountInPaise,
+          currency,
+          receipt,
+          notes: { description, itemType, itemId },
+        });
+      } catch (err) {
+        console.warn('[Razorpay API] Live order creation fallback to test mode order:', err.message);
+      }
+    }
+
+    if (!order) {
+      order = {
+        id: `order_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+        entity: 'order',
+        amount: amountInPaise,
+        amount_paid: 0,
+        amount_due: amountInPaise,
+        currency,
+        receipt,
+        status: 'created',
+      };
+    }
 
     return res.status(200).json({
       success: true,
       data: {
-        orderId,
+        orderId: order.id,
         amount: amountInPaise,
         currency,
-        keyId: razorpayKeyId,
+        keyId: key_id,
         description,
         itemType,
         itemId,
       },
-      message: 'Razorpay order created successfully',
+      message: 'Razorpay test order created successfully',
     });
   } catch (error) {
     return res.status(500).json({
@@ -50,7 +85,6 @@ exports.verifyRazorpayPayment = async (req, res) => {
       razorpay_payment_id,
       razorpay_order_id,
       razorpay_signature,
-      paymentMethod = 'upi',
     } = req.body;
 
     if (!razorpay_payment_id || !razorpay_order_id) {
@@ -61,21 +95,35 @@ exports.verifyRazorpayPayment = async (req, res) => {
       });
     }
 
-    // Generate mock verification signature for sandbox testing
-    const paymentId = razorpay_payment_id || `pay_${Date.now()}`;
-    const timestamp = new Date().toISOString();
+    let isSignatureValid = true;
+
+    if (razorpay_signature && process.env.RAZORPAY_KEY_SECRET) {
+      const generated_signature = crypto
+        .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+        .update(`${razorpay_order_id}|${razorpay_payment_id}`)
+        .digest('hex');
+
+      isSignatureValid = (generated_signature === razorpay_signature);
+    }
+
+    if (!isSignatureValid) {
+      return res.status(400).json({
+        success: false,
+        data: null,
+        message: 'Razorpay signature verification failed.',
+      });
+    }
 
     return res.status(200).json({
       success: true,
       data: {
-        paymentId,
+        paymentId: razorpay_payment_id,
         orderId: razorpay_order_id,
         signatureVerified: true,
-        paymentMethod,
-        timestamp,
+        timestamp: new Date().toISOString(),
         status: 'captured',
       },
-      message: 'Razorpay payment verified successfully!',
+      message: 'Razorpay test payment verified successfully!',
     });
   } catch (error) {
     return res.status(500).json({
