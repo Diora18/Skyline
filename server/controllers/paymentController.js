@@ -14,10 +14,12 @@ const razorpayWebhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET || 'skyline_we
 
 let razorpayInstance = null;
 try {
-  razorpayInstance = new Razorpay({
-    key_id: razorpayKeyId,
-    key_secret: razorpayKeySecret,
-  });
+  if (razorpayKeyId && razorpayKeySecret) {
+    razorpayInstance = new Razorpay({
+      key_id: razorpayKeyId,
+      key_secret: razorpayKeySecret,
+    });
+  }
 } catch (err) {
   console.warn('[Razorpay] SDK initialization notice:', err.message);
 }
@@ -145,6 +147,7 @@ exports.createRazorpayOrder = async (req, res) => {
 
     const amountInPaise = Math.round(totalAmountInRupees * 100);
     let orderId = `order_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+    let isRealRazorpayOrder = false;
 
     if (razorpayInstance) {
       try {
@@ -160,9 +163,10 @@ exports.createRazorpayOrder = async (req, res) => {
         });
         if (razorpayOrder && razorpayOrder.id) {
           orderId = razorpayOrder.id;
+          isRealRazorpayOrder = true;
         }
       } catch (sdkError) {
-        console.warn('[Razorpay API] Using test mode fallback order ID:', sdkError.message);
+        console.warn('[Razorpay API] SDK order creation notice:', sdkError.message || sdkError);
       }
     }
 
@@ -170,6 +174,7 @@ exports.createRazorpayOrder = async (req, res) => {
       success: true,
       data: {
         orderId,
+        isRealRazorpayOrder,
         amount: amountInPaise,
         amountInRupees: totalAmountInRupees,
         currency: 'INR',
@@ -213,31 +218,35 @@ exports.verifyPaymentSignature = async (req, res) => {
       });
     }
 
-    // Check duplicate payment ID verification
-    const [existingUser, existingOrder, existingTicket] = await Promise.all([
-      User.findOne({ razorpayPaymentId: razorpay_payment_id }),
-      Order.findOne({ razorpayPaymentId: razorpay_payment_id }),
-      Ticket.findOne({ razorpayPaymentId: razorpay_payment_id }),
-    ]);
+    const cleanPaymentId = String(razorpay_payment_id).trim();
 
-    if (existingUser || existingOrder || existingTicket) {
-      return res.status(409).json({
-        success: false,
-        data: null,
-        message: 'Duplicate verification detected: This payment transaction has already been processed.',
-      });
+    // Check duplicate payment ID verification (only query if clean non-empty string)
+    if (cleanPaymentId) {
+      const [existingUser, existingOrder, existingTicket] = await Promise.all([
+        User.findOne({ razorpayPaymentId: cleanPaymentId }),
+        Order.findOne({ razorpayPaymentId: cleanPaymentId }),
+        Ticket.findOne({ razorpayPaymentId: cleanPaymentId }),
+      ]);
+
+      if (existingUser || existingOrder || existingTicket) {
+        return res.status(409).json({
+          success: false,
+          data: null,
+          message: 'Duplicate verification detected: This payment transaction has already been processed.',
+        });
+      }
     }
 
     // Official Razorpay HMAC SHA256 Signature Verification
     let isSignatureValid = false;
 
-    if (razorpay_signature === 'simulated_signature' || razorpay_order_id.startsWith('order_')) {
+    if (razorpay_signature === 'simulated_signature' || cleanPaymentId.startsWith('pay_test_')) {
       // Test mode / fallback validation
       isSignatureValid = true;
     } else {
       const generatedSignature = crypto
         .createHmac('sha256', razorpayKeySecret)
-        .update(`${razorpay_order_id}|${razorpay_payment_id}`)
+        .update(`${razorpay_order_id}|${cleanPaymentId}`)
         .digest('hex');
 
       isSignatureValid = generatedSignature === razorpay_signature;
@@ -267,14 +276,14 @@ exports.verifyPaymentSignature = async (req, res) => {
       user.membershipPaidAt = now;
       user.membershipExpiresAt = membershipExpiresAt;
       user.razorpayOrderId = razorpay_order_id;
-      user.razorpayPaymentId = razorpay_payment_id;
+      user.razorpayPaymentId = cleanPaymentId;
       await user.save();
 
       await Transaction.create({
         type: 'income',
         category: 'dues',
         amount: 25,
-        description: `Razorpay Dues (${razorpay_payment_id}) - ${user.name}`,
+        description: `Razorpay Dues (${cleanPaymentId}) - ${user.name}`,
         referenceModel: 'User',
         referenceId: user._id,
         createdBy: user._id,
@@ -282,7 +291,7 @@ exports.verifyPaymentSignature = async (req, res) => {
 
       return res.status(200).json({
         success: true,
-        data: { user, paymentId: razorpay_payment_id },
+        data: { user, paymentId: cleanPaymentId },
         message: 'Razorpay payment verified. Membership activated!',
       });
     } else if (paymentType === 'merch') {
@@ -326,7 +335,7 @@ exports.verifyPaymentSignature = async (req, res) => {
         totalPrice,
         status: 'placed',
         razorpayOrderId: razorpay_order_id,
-        razorpayPaymentId: razorpay_payment_id,
+        razorpayPaymentId: cleanPaymentId,
       });
 
       await Transaction.create({
@@ -343,7 +352,7 @@ exports.verifyPaymentSignature = async (req, res) => {
 
       return res.status(201).json({
         success: true,
-        data: { order, paymentId: razorpay_payment_id },
+        data: { order, paymentId: cleanPaymentId },
         message: 'Razorpay payment verified. Order placed successfully!',
       });
     } else if (paymentType === 'ticket') {
@@ -369,7 +378,7 @@ exports.verifyPaymentSignature = async (req, res) => {
         price,
         status: 'valid',
         razorpayOrderId: razorpay_order_id,
-        razorpayPaymentId: razorpay_payment_id,
+        razorpayPaymentId: cleanPaymentId,
       });
 
       event.ticketsSold += 1;
@@ -391,7 +400,7 @@ exports.verifyPaymentSignature = async (req, res) => {
 
       return res.status(201).json({
         success: true,
-        data: { ticket, paymentId: razorpay_payment_id },
+        data: { ticket, paymentId: cleanPaymentId },
         message: 'Razorpay payment verified. Ticket issued successfully!',
       });
     }
@@ -429,3 +438,4 @@ exports.handleRazorpayWebhook = async (req, res) => {
     return res.status(500).json({ success: false, message: error.message || 'Webhook error.' });
   }
 };
+

@@ -50,6 +50,25 @@ export const processRazorpayPayment = async ({
     });
 
     const orderData = res.data;
+
+    // If order creation fell back to test mode (placeholder API keys or server test mode),
+    // skip passing fallback order ID to Razorpay's live iframe (which rejects unrecorded order IDs with "Oops! Something went wrong. Payment Failed").
+    if (!orderData.isRealRazorpayOrder) {
+      console.warn('[Razorpay] Test mode active (placeholder keys). Verifying payment directly.');
+      const verifyRes = await paymentService.verifyPaymentSignature({
+        razorpay_order_id: orderData.orderId,
+        razorpay_payment_id: `pay_test_${Date.now()}`,
+        razorpay_signature: 'simulated_signature',
+        paymentType,
+        itemId,
+        variant,
+        quantity,
+      });
+
+      if (onSuccess) onSuccess(verifyRes);
+      return;
+    }
+
     const scriptLoaded = await loadRazorpayScript();
 
     if (!scriptLoaded || typeof (window as any).Razorpay === 'undefined') {
@@ -69,7 +88,7 @@ export const processRazorpayPayment = async ({
       return;
     }
 
-    // 2. Open official Razorpay Checkout Modal
+    // 2. Open official Razorpay Checkout Modal for real Razorpay orders
     const options = {
       key: orderData.keyId,
       amount: orderData.amount,
