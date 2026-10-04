@@ -8,13 +8,14 @@ const Product = require('../models/Product');
 const Transaction = require('../models/Transaction');
 const { generateOrderNumber, generateTicketCode } = require('../utils/generateCode');
 
-const razorpayKeyId = process.env.RAZORPAY_KEY_ID || 'rzp_test_skyline_2026';
-const razorpayKeySecret = process.env.RAZORPAY_KEY_SECRET || 'skyline_razorpay_secret_2026';
-const razorpayWebhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET || 'skyline_webhook_secret_2026';
+const razorpayKeyId = process.env.RAZORPAY_KEY_ID || '';
+const razorpayKeySecret = process.env.RAZORPAY_KEY_SECRET || '';
+const razorpayWebhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET || '';
+const allowPaymentSimulation = process.env.PAYMENT_SIMULATION === 'true';
 
 let razorpayInstance = null;
 try {
-  if (razorpayKeyId && razorpayKeySecret) {
+  if (/^rzp_(test|live)_/.test(razorpayKeyId) && razorpayKeySecret) {
     razorpayInstance = new Razorpay({
       key_id: razorpayKeyId,
       key_secret: razorpayKeySecret,
@@ -170,11 +171,20 @@ exports.createRazorpayOrder = async (req, res) => {
       }
     }
 
+    if (!razorpayInstance && !allowPaymentSimulation) {
+      return res.status(503).json({
+        success: false,
+        data: null,
+        message: 'Razorpay is not configured or unavailable. No payment was created.',
+      });
+    }
+
     return res.status(200).json({
       success: true,
       data: {
         orderId,
         isRealRazorpayOrder,
+        isSimulation: !isRealRazorpayOrder && allowPaymentSimulation,
         amount: amountInPaise,
         amountInRupees: totalAmountInRupees,
         currency: 'INR',
@@ -240,7 +250,10 @@ exports.verifyPaymentSignature = async (req, res) => {
     // Official Razorpay HMAC SHA256 Signature Verification
     let isSignatureValid = false;
 
-    if (razorpay_signature === 'simulated_signature' || cleanPaymentId.startsWith('pay_test_')) {
+    if (allowPaymentSimulation && (
+      razorpay_signature === 'simulated_signature' ||
+      cleanPaymentId.startsWith('pay_test_')
+    )) {
       // Test mode / fallback validation
       isSignatureValid = true;
     } else {
@@ -438,4 +451,3 @@ exports.handleRazorpayWebhook = async (req, res) => {
     return res.status(500).json({ success: false, message: error.message || 'Webhook error.' });
   }
 };
-
