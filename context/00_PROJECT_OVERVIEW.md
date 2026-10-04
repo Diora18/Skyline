@@ -137,7 +137,7 @@ Access control is partitioned into two dimensions: **Global Roles** (what positi
 
 ### The 4 Global Roles
 1. **Student (Default):** Can browse upcoming events, merch catalog, and public announcements. Can sign up and pay dues.
-2. **Volunteer:** Member with operational permissions. Can use the Door QR Scanner, be assigned to Kanban tasks, move their own tasks to "Done", and submit expense claims.
+2. **Volunteer:** Member with operational permissions. Can use the Door QR Scanner, be assigned to Kanban tasks, move their own tasks to "Done", and submit expense claims. A member approved as a volunteer for a specific event can access that event's attendee scanner and submit event-linked expense claims for Treasurer/Officer review.
 3. **Treasurer:** Financial executive. Full access to the Treasury dashboard, manual cash recording, and the expense reimbursement review queue (Approve / Reject / Reimburse).
 4. **Officer:** Full club administrator. Can create events, manage member roles, oversee inventory, publish announcements, and assign event managers.
 

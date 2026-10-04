@@ -1,5 +1,7 @@
 # Skyline Student Association - Pages and Components
 
+> **Implementation note:** This document contains the original page/component design inventory and may describe planned pages or permissions that are not in the current app. For verified user workflows, role permissions, and the live route map, see [`../USER_WORKFLOWS.md`](../USER_WORKFLOWS.md) and `client/src/App.jsx`.
+
 This document details every page and component for the Skyline Student Association React frontend. The application uses React (Vite, JavaScript), React Router DOM v6, Tailwind CSS, and Lucide React icons.
 
 ## User Roles & Membership
@@ -176,7 +178,7 @@ This document details every page and component for the Skyline Student Associati
 
 #### Door Scanner (`/admin/scanner`)
 - **Route Path:** `/admin/scanner`
-- **Access:** Volunteer, Officer
+- **Access:** Volunteer or Officer globally; an approved event volunteer may open the scanner from that event assignment only. Event managers remain scoped to their assigned events.
 - **Title:** Door Check-In Scanner
 - **Layout Description:**
   - Top: Title "Door Check-In Scanner". Optional Event selector dropdown.
@@ -187,6 +189,11 @@ This document details every page and component for the Skyline Student Associati
   - Recent Scans feed.
 - **Data Fetched:** POST `/api/tickets/scan`, GET `/api/tickets/event/:eventId`
 - **Interactions:** Scanning QR code, submitting manual entry code.
+
+#### My Expense Claims (`/expenses/my`)
+- **Route Path:** `/expenses/my`
+- **Access:** Logged-in user; shows only the signed-in user's claims.
+- **Event-volunteer claims:** An approved/completed event volunteer may submit a claim from their event assignment, which is linked to that event and available for Treasurer/Officer review.
 
 ### 5. Merchandise Pages
 

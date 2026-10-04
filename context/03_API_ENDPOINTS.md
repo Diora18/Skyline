@@ -189,6 +189,17 @@ This document serves as the single source of truth for all API endpoints in the 
   ```
 - **Business Logic / Side Effects**: Simulated payment. Updates user with `membershipStatus='active'`, `membershipPaidAt=now`, `membershipExpiresAt=now+1year`. Creates a Transaction record `{ type: 'income', category: 'dues', amount: 25 }`.
 
+### GET `/api/members/me/volunteering`
+- **Auth Required**: Yes (any authenticated role)
+- **Response (200)**: `{ success: true, data: { applications: [...] } }`
+- Each application includes its event, status, optional responsibility, review metadata, and timestamps. Results belong only to the authenticated user.
+
+### Event-specific volunteer applications
+- **POST `/api/events/:id/volunteers`** — Authenticated user applies to an upcoming published event. A second active application for the same event returns `409`; a rejected user may apply again, returning to `pending`.
+- **GET `/api/events/:id/volunteers`** — Officer, event creator, or assigned event manager only. Returns applications and member identity fields for that event.
+- **PATCH `/api/events/:id/volunteers/:applicationId`** — Officer, event creator, or assigned event manager only. Supports `status: 'approved' | 'rejected' | 'completed'` and optional `responsibility` (up to 120 characters). Only pending applications can be approved/rejected; only approved applications can be completed, and only after the event ends.
+- **Application statuses**: `pending`, `approved`, `rejected`, `completed`. Applications are unique per user and event and persist independently of the user’s global role.
+
 ### PATCH `/api/members/:id/role`
 - **Auth Required**: Yes (Role: officer)
 - **Request Body**:
@@ -419,7 +430,7 @@ This document serves as the single source of truth for all API endpoints in the 
 - **Response (200)**: Array of user's tickets with event populated (`title`, `startDate`, `venue`).
 
 ### GET `/api/tickets/event/:eventId`
-- **Auth Required**: Yes (Role: volunteer, treasurer, officer, OR event manager for this event)
+- **Auth Required**: Yes (Role: volunteer, treasurer, officer, event manager for this event, OR approved volunteer for this event)
 - **Response (200)**:
   ```json
   {
@@ -435,7 +446,7 @@ This document serves as the single source of truth for all API endpoints in the 
   ```
 
 ### POST `/api/tickets/scan`
-- **Auth Required**: Yes (Role: volunteer, officer, OR event manager for the ticket's event)
+- **Auth Required**: Yes (Role: volunteer, officer, event manager for the ticket's event, OR approved volunteer for the ticket's event)
 - **Request Body**:
   ```json
   {
@@ -580,7 +591,8 @@ This document serves as the single source of truth for all API endpoints in the 
 ## 8. TASK ROUTES (`/api/tasks`)
 
 ### POST `/api/tasks`
-- **Auth Required**: Yes (Role: officer)
+- **Auth Required**: Yes. Officers may create tasks in any project. An event creator/manager may create tasks only in a project linked to the event they manage.
+- **Assignment rule**: Event managers must provide an `assignee` whose global role is `volunteer`; this is enforced by the API, not just the task form. Officer task assignment retains its existing permissions.
 - **Request Body**:
   ```json
   {
@@ -596,9 +608,9 @@ This document serves as the single source of truth for all API endpoints in the 
 - **Response (201)**: Created task object.
 
 ### PATCH `/api/tasks/:id`
-- **Auth Required**: Yes (Role: volunteer or officer)
+- **Auth Required**: Yes (assigned user or officer)
 - **Request Body**: Any subset of task fields.
-- **Validation**: Volunteers are only allowed to update the `status` field, and only on tasks where `assignee === req.user._id`. Officers can change anything.
+- **Validation**: A non-officer can only update the `status` field on a task assigned to them. Officers can change any task fields.
 
 ### DELETE `/api/tasks/:id`
 - **Auth Required**: Yes (Role: officer)
@@ -653,21 +665,23 @@ This document serves as the single source of truth for all API endpoints in the 
 ## 10. EXPENSE ROUTES (`/api/expenses`)
 
 ### POST `/api/expenses`
-- **Auth Required**: Yes (Role: volunteer, treasurer, officer)
+- **Auth Required**: Yes. Global Volunteer, Treasurer, and Officer roles may submit as before. A member may also submit a claim when they have an `approved` or `completed` volunteer application for the supplied event.
 - **Request Body**:
   ```json
   {
     "amount": 23.50,
     "category": "supplies",
     "description": "Baking supplies for fundraiser",
+    "event": "6a9b1c...",
     "linkedProject": "9d0e1f...",
     "receiptUrl": "https://..."
   }
   ```
+- `event` is optional for global expense roles. If supplied by a member relying on an event assignment, the API verifies the user's application is `approved` or `completed`. The event is stored on the claim; its linked project is attached when available.
 - **Response (201)**: Created expense object with status 'submitted'.
 
 ### GET `/api/expenses/my`
-- **Auth Required**: Yes (any role that can submit)
+- **Auth Required**: Yes (authenticated user; returns only their claims)
 - **Response (200)**: User's own expense claims.
 
 ### GET `/api/expenses`
