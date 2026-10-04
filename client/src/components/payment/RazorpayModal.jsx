@@ -136,7 +136,8 @@ export function RazorpayModal({
               ondismiss: function () {
                 if (isMounted) {
                   setSdkLoading(false);
-                  if (onClose) onClose();
+                  // Do not close modal when Razorpay SDK popup dismisses without payment;
+                  // Allow user to use embedded Razorpay test gateway
                 }
               },
             },
