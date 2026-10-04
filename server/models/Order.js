@@ -11,6 +11,8 @@ const orderSchema = new mongoose.Schema({
   quantity: { type: Number, required: true, min: 1, default: 1 },
   totalPrice: { type: Number, required: true },  // basePrice * quantity
   status: { type: String, enum: ['placed', 'confirmed', 'ready', 'collected', 'cancelled'], default: 'placed' },
+  razorpayOrderId: { type: String, default: null },
+  razorpayPaymentId: { type: String, default: null },
 }, { timestamps: true });
 
 orderSchema.index({ user: 1 });

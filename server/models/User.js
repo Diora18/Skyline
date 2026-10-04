@@ -14,6 +14,8 @@ const userSchema = new mongoose.Schema({
   membershipStatus: { type: String, enum: ['none', 'active', 'expired'], default: 'none' },
   membershipPaidAt: { type: Date, default: null },
   membershipExpiresAt: { type: Date, default: null },
+  razorpayOrderId: { type: String, default: null },
+  razorpayPaymentId: { type: String, default: null },
 }, { timestamps: true });
 
 // Pre-save hook to hash password if modified

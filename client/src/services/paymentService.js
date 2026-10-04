@@ -2,11 +2,11 @@ import api from './api';
 
 export const paymentService = {
   createRazorpayOrder: async (data) => {
-    return await api.post('/payment/razorpay/create-order', data);
+    return await api.post('/payments/create-order', data);
   },
 
-  verifyRazorpayPayment: async (data) => {
-    return await api.post('/payment/razorpay/verify', data);
+  verifyPaymentSignature: async (data) => {
+    return await api.post('/payments/verify', data);
   },
 };
 

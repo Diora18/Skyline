@@ -1,13 +1,13 @@
 'use client'
 
 import { useState, type FormEvent } from 'react'
-import { Check, Loader2, PartyPopper, ShieldCheck, CreditCard } from 'lucide-react'
+import { Check, Loader2, PartyPopper, ShieldCheck } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { SectionHeading } from './section-heading'
 import { useAuth } from '@/hooks/useAuth'
 import memberService from '@/services/memberService'
-import { RazorpayModal } from '@/components/payment/RazorpayModal'
+import { processRazorpayPayment } from '@/utils/razorpay'
 
 type MembershipUser = {
   _id: string
@@ -26,10 +26,8 @@ export function MembershipJoin() {
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [successName, setSuccessName] = useState('')
-  const [showRazorpay, setShowRazorpay] = useState(false)
-  const [razorpayPaymentId, setRazorpayPaymentId] = useState('')
 
-  const handleOpenPayment = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setError('')
 
@@ -38,30 +36,30 @@ export function MembershipJoin() {
       return
     }
     if (user.membershipStatus === 'active') return
+    if (submitting) return
 
-    setShowRazorpay(true)
-  }
-
-  const handleRazorpaySuccess = async (paymentDetails: any) => {
-    setShowRazorpay(false)
-    setSubmitting(true)
-    setError('')
-
-    try {
-      const response = await memberService.payDues()
-      const updatedUser = response.data?.user as MembershipUser | undefined
-      if (!updatedUser || updatedUser.membershipStatus !== 'active') {
-        throw new Error(response.message || 'The membership API did not confirm an active membership.')
-      }
-
-      syncUser(updatedUser)
-      setSuccessName(updatedUser.name || user.name)
-      setRazorpayPaymentId(paymentDetails.paymentId || '')
-    } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : 'Unable to activate membership.')
-    } finally {
-      setSubmitting(false)
-    }
+    processRazorpayPayment({
+      paymentType: 'membership',
+      user,
+      onStart: () => setSubmitting(true),
+      onSuccess: (response) => {
+        const updatedUser = response.data?.user as MembershipUser | undefined
+        if (updatedUser && updatedUser.membershipStatus === 'active') {
+          syncUser(updatedUser)
+          setSuccessName(updatedUser.name || user.name)
+        } else {
+          setError('Payment verified but active membership was not updated.')
+        }
+        setSubmitting(false)
+      },
+      onError: (errMsg) => {
+        setError(errMsg)
+        setSubmitting(false)
+      },
+      onDismiss: () => {
+        setSubmitting(false)
+      },
+    })
   }
 
   const isActiveMember = user?.membershipStatus === 'active'
@@ -164,13 +162,8 @@ export function MembershipJoin() {
                   </span>
                   <h3 className="text-3xl font-extrabold">Welcome aboard, {successName}!</h3>
                   <p className="max-w-sm text-muted-foreground">
-                    Your payment was processed successfully via Razorpay and your 1-year membership is active!
+                    The API confirmed that your membership is active, and your account state has been updated.
                   </p>
-                  {razorpayPaymentId && (
-                    <div className="rounded-xl bg-muted/60 px-4 py-2 text-xs font-mono text-muted-foreground border border-border">
-                      Razorpay Payment ID: <span className="font-bold text-foreground">{razorpayPaymentId}</span>
-                    </div>
-                  )}
                   <Button type="button" variant="outline" className="h-11 rounded-full px-5" onClick={() => setSuccessName('')}>
                     View membership status
                   </Button>
@@ -190,7 +183,7 @@ export function MembershipJoin() {
                   <p className="text-xs text-muted-foreground">No additional dues payment is needed right now.</p>
                 </div>
               ) : user ? (
-                <form onSubmit={handleOpenPayment} className="flex flex-col gap-6">
+                <form onSubmit={handleSubmit} className="flex flex-col gap-6">
                   <div className="grid gap-4 sm:grid-cols-2">
                     <ReadOnlyField label="Name" value={user.name} />
                     <ReadOnlyField label="University email" value={user.email} />
@@ -207,24 +200,10 @@ export function MembershipJoin() {
 
                   <Button type="submit" disabled={submitting || authLoading || isActiveMember} className="h-12 rounded-full text-base font-semibold">
                     {submitting && <Loader2 className="mr-2 size-4 animate-spin" />}
-                    <CreditCard className="mr-2 size-4" />
-                    {submitting ? 'Processing dues...' : `Pay $25 via Razorpay Demo`}
+                    {submitting ? 'Processing dues...' : `${isRenewal ? 'Renew membership' : 'Activate membership'} · $25`}
                   </Button>
                 </form>
               ) : null}
-
-              {/* Razorpay Demo Payment Modal */}
-              <RazorpayModal
-                isOpen={showRazorpay}
-                onClose={() => setShowRazorpay(false)}
-                onSuccess={handleRazorpaySuccess}
-                amount={25}
-                currency="USD"
-                title="Skyline SSA Membership"
-                description="1-Year Official Student Membership Dues"
-                customerName={user?.name || 'Student Member'}
-                customerEmail={user?.email || 'member@skyline.edu'}
-              />
             </div>
           </div>
         </div>

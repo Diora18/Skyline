@@ -8,6 +8,8 @@ const ticketSchema = new mongoose.Schema({
   price: { type: Number, required: true },  // actual price paid at time of purchase
   status: { type: String, enum: ['valid', 'used', 'cancelled'], default: 'valid' },
   checkedInAt: { type: Date, default: null },  // set when scanned at door
+  razorpayOrderId: { type: String, default: null },
+  razorpayPaymentId: { type: String, default: null },
 }, { timestamps: true });
 
 ticketSchema.index({ event: 1, user: 1 });

@@ -5,6 +5,7 @@ import { AuthContext } from '@/context/AuthContext';
 import { ShoppingBag, CheckCircle2, Loader2, AlertCircle, X, Plus, Minus, ArrowRight, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
+import { processRazorpayPayment } from '@/utils/razorpay';
 
 export default function Merch() {
   const [products, setProducts] = useState([]);
@@ -192,19 +193,26 @@ function ProductCheckoutModal({ product, onClose, onOrderSuccess }) {
     setLoading(true);
     setError('');
 
-    try {
-      const res = await orderService.createOrder(
-        product._id,
-        { size: selectedVariant.size, color: selectedVariant.color },
-        quantity
-      );
-      setCreatedOrder(res.data.order);
-      if (onOrderSuccess) onOrderSuccess();
-    } catch (err) {
-      setError(err.message || 'Failed to place order.');
-    } finally {
-      setLoading(false);
-    }
+    processRazorpayPayment({
+      paymentType: 'merch',
+      itemId: product._id,
+      variant: { size: selectedVariant.size, color: selectedVariant.color },
+      quantity,
+      user,
+      onStart: () => setLoading(true),
+      onSuccess: (res) => {
+        setCreatedOrder(res.data.order);
+        if (onOrderSuccess) onOrderSuccess();
+        setLoading(false);
+      },
+      onError: (errMsg) => {
+        setError(errMsg);
+        setLoading(false);
+      },
+      onDismiss: () => {
+        setLoading(false);
+      },
+    });
   };
 
   return (

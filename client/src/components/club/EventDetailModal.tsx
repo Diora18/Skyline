@@ -1,12 +1,12 @@
 import { useState, useContext, useEffect } from 'react';
 import { AuthContext } from '@/context/AuthContext';
 import ticketService from '@/services/ticketService';
-import { Calendar, Clock, MapPin, Ticket, CheckCircle2, Loader2, AlertCircle, X, ShieldCheck, Users, CreditCard } from 'lucide-react';
+import { Calendar, Clock, MapPin, Ticket, CheckCircle2, Loader2, AlertCircle, X, ShieldCheck, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import volunteerService from '@/services/volunteerService';
 import { AlumniSocialLinks } from './alumni-social-links';
-import { RazorpayModal } from '@/components/payment/RazorpayModal';
+import { processRazorpayPayment } from '@/utils/razorpay';
 
 export function EventDetailModal({ event, onClose, onTicketPurchased }: any) {
   const { user, token, isMember } = useContext(AuthContext);
@@ -18,7 +18,6 @@ export function EventDetailModal({ event, onClose, onTicketPurchased }: any) {
   const [volunteerLoading, setVolunteerLoading] = useState(false);
   const [volunteerError, setVolunteerError] = useState('');
   const [applying, setApplying] = useState(false);
-  const [showRazorpay, setShowRazorpay] = useState(false);
   const [currentTime] = useState(() => Date.now());
 
   useEffect(() => {
@@ -63,6 +62,9 @@ export function EventDetailModal({ event, onClose, onTicketPurchased }: any) {
 
   const price = isMember ? event.memberPrice : event.nonMemberPrice;
   const isSoldOut = event.capacity !== null && event.ticketsSold >= event.capacity;
+  const canApplyToVolunteer = event.status === 'published' && startDate.getTime() > currentTime;
+  const isAlumniEvent = /alumni/i.test(event.title || '');
+
   const handlePurchase = async () => {
     if (!token || !user) {
       navigate('/login');
@@ -72,32 +74,37 @@ export function EventDetailModal({ event, onClose, onTicketPurchased }: any) {
     setLoading(true);
     setError('');
 
-    try {
-      const res = await ticketService.purchaseTicket(event._id);
-      setPurchasedTicket(res.data.ticket);
-      if (onTicketPurchased) onTicketPurchased(event._id);
-    } catch (err: any) {
-      setError(err.message || 'Failed to register for event.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleInitiatePurchase = () => {
-    if (!token || !user) {
-      navigate('/login');
+    if (price === 0) {
+      try {
+        const res = await ticketService.purchaseTicket(event._id);
+        setPurchasedTicket(res.data.ticket);
+        if (onTicketPurchased) onTicketPurchased(event._id);
+      } catch (err: any) {
+        setError(err.message || 'Failed to register for event.');
+      } finally {
+        setLoading(false);
+      }
       return;
     }
-    if (price > 0) {
-      setShowRazorpay(true);
-    } else {
-      handlePurchase();
-    }
-  };
 
-  const handleRazorpaySuccess = async () => {
-    setShowRazorpay(false);
-    await handlePurchase();
+    processRazorpayPayment({
+      paymentType: 'ticket',
+      itemId: event._id,
+      user,
+      onStart: () => setLoading(true),
+      onSuccess: (res) => {
+        setPurchasedTicket(res.data.ticket);
+        if (onTicketPurchased) onTicketPurchased(event._id);
+        setLoading(false);
+      },
+      onError: (errMsg) => {
+        setError(errMsg);
+        setLoading(false);
+      },
+      onDismiss: () => {
+        setLoading(false);
+      },
+    });
   };
 
   const handleVolunteerApplication = async () => {
@@ -313,7 +320,7 @@ export function EventDetailModal({ event, onClose, onTicketPurchased }: any) {
 
             <div className="pt-2 flex items-center gap-3">
               <Button
-                onClick={handleInitiatePurchase}
+                onClick={handlePurchase}
                 disabled={loading || isSoldOut}
                 className="flex-1 rounded-full h-11 text-base font-semibold"
               >
@@ -328,25 +335,12 @@ export function EventDetailModal({ event, onClose, onTicketPurchased }: any) {
                   'Sign In to RSVP'
                 ) : (
                   <>
-                    {price > 0 ? <CreditCard className="h-4 w-4 mr-2" /> : <Ticket className="h-4 w-4 mr-2" />}
-                    {price === 0 ? 'Claim Free Ticket' : `Pay $${price} via Razorpay`}
+                    <Ticket className="h-4 w-4 mr-2" />
+                    {price === 0 ? 'Claim Free Ticket' : `Purchase Ticket ($${price})`}
                   </>
                 )}
               </Button>
             </div>
-
-            {/* Razorpay Checkout Modal */}
-            <RazorpayModal
-              isOpen={showRazorpay}
-              onClose={() => setShowRazorpay(false)}
-              onSuccess={handleRazorpaySuccess}
-              amount={price}
-              currency="USD"
-              title={`Ticket: ${event.title}`}
-              description={`Single Entry Ticket for ${event.title}`}
-              customerName={user?.name || 'Student Member'}
-              customerEmail={user?.email || 'member@skyline.edu'}
-            />
           </div>
         )}
       </div>
