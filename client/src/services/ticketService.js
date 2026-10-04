@@ -13,8 +13,8 @@ export const ticketService = {
     return await api.get(`/tickets/event/${eventId}`);
   },
 
-  scanTicket: async (ticketCode) => {
-    return await api.post('/tickets/scan', { ticketCode });
+  scanTicket: async (ticketCode, eventId) => {
+    return await api.post('/tickets/scan', { ticketCode, eventId });
   },
 };
 

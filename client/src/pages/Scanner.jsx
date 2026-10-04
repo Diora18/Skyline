@@ -1,10 +1,17 @@
 import { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import ticketService from '@/services/ticketService';
+import eventService from '@/services/eventService';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import { QrCode, CheckCircle2, AlertTriangle, XCircle, Loader2, Camera, KeyRound, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function Scanner() {
+  const { isOfficer } = useAuth();
+  const [searchParams] = useSearchParams();
+  const eventId = searchParams.get('eventId') || '';
+  const [eventTitle, setEventTitle] = useState('');
   const [manualCode, setManualCode] = useState('');
   const [scanning, setScanning] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -12,13 +19,27 @@ export default function Scanner() {
 
   const scannerRef = useRef(null);
 
+  useEffect(() => {
+    if (!eventId) return;
+    eventService.getEventById(eventId)
+      .then((response) => setEventTitle(response.data.event?.title || 'Selected event'))
+      .catch(() => setEventTitle('Selected event'));
+  }, [eventId]);
+
   const processTicketCode = async (code) => {
     if (!code || loading) return;
+    if (!isOfficer && !eventId) {
+      setScanResult({
+        type: 'error',
+        message: 'Open the scanner from a specific managed event before scanning.',
+      });
+      return;
+    }
     const cleanCode = code.trim().toUpperCase();
 
     setLoading(true);
     try {
-      const res = await ticketService.scanTicket(cleanCode);
+      const res = await ticketService.scanTicket(cleanCode, eventId || undefined);
       setScanResult({
         type: 'success',
         message: res.message || 'Valid Ticket! Admission Granted.',
@@ -103,6 +124,16 @@ export default function Scanner() {
         <p className="text-muted-foreground text-sm max-w-lg mx-auto">
           Scan attendee QR codes or enter 12-digit ticket codes for instant admission verification.
         </p>
+        {!isOfficer && !eventId && (
+          <p className="mx-auto mt-3 max-w-lg rounded-xl bg-amber-500/10 px-4 py-3 text-sm font-semibold text-amber-700">
+            Select an event from your event manager or volunteer workspace to start scanning.
+          </p>
+        )}
+        {eventTitle && (
+          <p className="mx-auto mt-3 inline-block rounded-full bg-primary/10 px-4 py-2 text-sm font-semibold text-primary">
+            Scanning for: {eventTitle}
+          </p>
+        )}
       </div>
 
       <div className="mt-8 space-y-8">

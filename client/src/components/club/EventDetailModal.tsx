@@ -138,10 +138,12 @@ export function EventDetailModal({ event, onClose, onTicketPurchased }: any) {
                   {price === 0 ? 'FREE' : `$${price}`}
                 </span>
                 {isMember ? (
-                  <span className="text-xs text-emerald-500 font-semibold block">Member price applied</span>
+                  <span className="text-xs text-emerald-500 font-semibold block">
+                    Member price applied · Non-member: {event.nonMemberPrice === 0 ? 'FREE' : `$${event.nonMemberPrice}`}
+                  </span>
                 ) : (
                   <span className="text-xs text-muted-foreground block">
-                    (Member price: {event.memberPrice === 0 ? 'FREE' : `$${event.memberPrice}`})
+                    Member: {event.memberPrice === 0 ? 'FREE' : `$${event.memberPrice}`} · Non-member: {event.nonMemberPrice === 0 ? 'FREE' : `$${event.nonMemberPrice}`}
                   </span>
                 )}
               </div>

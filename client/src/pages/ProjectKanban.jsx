@@ -2,7 +2,6 @@ import { useState, useEffect, useContext } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import projectService from '@/services/projectService';
 import taskService from '@/services/taskService';
-import memberService from '@/services/memberService';
 import { AuthContext } from '@/context/AuthContext';
 import { FolderKanban, Plus, ChevronRight, ChevronLeft, Trash2, CheckCircle2, Circle, Clock, AlertCircle, Loader2, User, ArrowLeft, PackageCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -10,7 +9,7 @@ import { Button } from '@/components/ui/button';
 export default function ProjectKanban() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user, isOfficer, isVolunteer } = useContext(AuthContext);
+  const { user, isOfficer } = useContext(AuthContext);
 
   const [project, setProject] = useState(null);
   const [tasks, setTasks] = useState([]);
@@ -45,15 +44,8 @@ export default function ProjectKanban() {
   }, [id]);
 
   useEffect(() => {
-    if (!isOfficer) return;
-    memberService.getMembers({ limit: 100 })
-      .then((response) => {
-        setVolunteers((response.data.members || []).filter((member) => member.role === 'volunteer'));
-      })
-      .catch((err) => {
-        console.error('Failed to load volunteer assignments', err);
-      });
-  }, [isOfficer]);
+    setVolunteers(project?.eligibleVolunteers || []);
+  }, [project?.eligibleVolunteers]);
 
   const handleUpdateStatus = async (taskId, newStatus) => {
     try {
@@ -167,7 +159,7 @@ export default function ProjectKanban() {
           <p className="text-muted-foreground text-sm max-w-2xl mt-1">{project.description}</p>
         </div>
 
-        {isOfficer && (
+        {(isOfficer || project.canManage) && (
           <Button onClick={() => setShowTaskModal(true)} className="rounded-full shrink-0">
             <Plus className="h-4 w-4 mr-2" />
             Add Kanban Task
@@ -190,8 +182,8 @@ export default function ProjectKanban() {
               onMoveRight={() => handleUpdateStatus(task._id, 'in_progress')}
               onDelete={() => handleDeleteTask(task._id)}
               onMarkDone={() => handleUpdateStatus(task._id, 'done')}
-              canMarkDone={isVolunteer && String(task.assignee?._id || task.assignee) === String(user?._id)}
-              isOfficer={isOfficer}
+              canMarkDone={String(task.assignee?._id || task.assignee) === String(user?._id)}
+              isOfficer={isOfficer || project.canManage}
               getPriorityBadge={getPriorityBadge}
             />
           ))}
@@ -211,8 +203,8 @@ export default function ProjectKanban() {
               onMoveRight={() => handleUpdateStatus(task._id, 'done')}
               onDelete={() => handleDeleteTask(task._id)}
               onMarkDone={() => handleUpdateStatus(task._id, 'done')}
-              canMarkDone={isVolunteer && String(task.assignee?._id || task.assignee) === String(user?._id)}
-              isOfficer={isOfficer}
+              canMarkDone={String(task.assignee?._id || task.assignee) === String(user?._id)}
+              isOfficer={isOfficer || project.canManage}
               getPriorityBadge={getPriorityBadge}
             />
           ))}
@@ -231,7 +223,7 @@ export default function ProjectKanban() {
               onMoveLeft={() => handleUpdateStatus(task._id, 'in_progress')}
               onDelete={() => handleDeleteTask(task._id)}
               canMarkDone={false}
-              isOfficer={isOfficer}
+              isOfficer={isOfficer || project.canManage}
               getPriorityBadge={getPriorityBadge}
               isDone
             />

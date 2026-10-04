@@ -22,6 +22,8 @@ import MyExpenses from './pages/MyExpenses';
 import AdminExpenses from './pages/AdminExpenses';
 import Members from './pages/Members';
 import Announcements from './pages/Announcements';
+import VolunteerWorkspace from './pages/VolunteerWorkspace';
+import EventManagerWorkspace from './pages/EventManagerWorkspace';
 import Inventory from './pages/Inventory';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 
@@ -54,7 +56,7 @@ function App() {
         <Route
           path="/projects"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute requireProjectAccess>
               <Projects />
             </ProtectedRoute>
           }
@@ -62,7 +64,7 @@ function App() {
         <Route
           path="/projects/:id"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute requireProjectAccess>
               <ProjectKanban />
             </ProtectedRoute>
           }
@@ -90,6 +92,22 @@ function App() {
           element={
             <ProtectedRoute requireExpenseSubmit>
               <ExpenseSubmit />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/volunteer"
+          element={
+            <ProtectedRoute>
+              <VolunteerWorkspace />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/event-manager"
+          element={
+            <ProtectedRoute requireEventManager>
+              <EventManagerWorkspace />
             </ProtectedRoute>
           }
         />

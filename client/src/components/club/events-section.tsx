@@ -28,7 +28,7 @@ const emptyEventForm = {
   nonMemberPrice: '0',
   capacity: '',
   status: 'published',
-  createLinkedProject: false,
+  createLinkedProject: true,
 }
 
 const toLocalDateTime = (value: string) => {
@@ -39,10 +39,11 @@ const toLocalDateTime = (value: string) => {
 }
 
 export function EventsSection() {
-  const { user, token, isMember, isOfficer, isVolunteer, isTreasurer } = useContext(AuthContext)
+  const { user, token, isMember, isOfficer, isTreasurer } = useContext(AuthContext)
   const [filter, setFilter] = useState<Category>('All')
   const [eventsList, setEventsList] = useState<any[]>([])
   const [myTicketEventIds, setMyTicketEventIds] = useState<Set<string>>(new Set())
+  const [volunteerStatuses, setVolunteerStatuses] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const [selectedEvent, setSelectedEvent] = useState<any | null>(null)
   const [managementEvent, setManagementEvent] = useState<any | null>(null)
@@ -52,6 +53,8 @@ export function EventsSection() {
   const [members, setMembers] = useState<any[]>([])
   const [attendees, setAttendees] = useState<any[]>([])
   const [attendeeStats, setAttendeeStats] = useState<any | null>(null)
+  const [volunteerApplications, setVolunteerApplications] = useState<any[]>([])
+  const [loadingVolunteerApplications, setLoadingVolunteerApplications] = useState(false)
 
   const fetchEvents = async () => {
     setLoading(true)
@@ -67,6 +70,7 @@ export function EventsSection() {
       } else {
         const res = await eventService.getEvents()
         setEventsList(res.data.events || [])
+        fetchMyVolunteerStatuses(res.data.events || [])
       }
     } catch (err) {
       console.error('Failed to load events', err)
@@ -88,6 +92,28 @@ export function EventsSection() {
       setMyTicketEventIds(ids)
     } catch (err) {
       console.error('Failed to load tickets', err)
+    }
+  }
+
+  const fetchMyVolunteerStatuses = async (events: any[]) => {
+    if (!token || !user) return
+    try {
+      const applications = await Promise.all(events.map(async (event) => {
+        const response = await eventService.getVolunteerApplications(event._id)
+        return [event._id, response.data.applications?.[0]?.status || null]
+      }))
+      setVolunteerStatuses(Object.fromEntries(applications.filter(([, status]) => status)))
+    } catch (err) {
+      console.error('Failed to load volunteer applications', err)
+    }
+  }
+
+  const handleVolunteerApplication = async (event: any) => {
+    try {
+      await eventService.applyToVolunteer(event._id)
+      setVolunteerStatuses((current) => ({ ...current, [event._id]: 'pending' }))
+    } catch (err: any) {
+      alert(err.message || 'Failed to submit volunteer application')
     }
   }
 
@@ -117,6 +143,8 @@ export function EventsSection() {
     setManagementError('')
     setAttendees([])
     setAttendeeStats(null)
+    setVolunteerApplications([])
+    setLoadingVolunteerApplications(false)
     setMembers([])
     setEventForm(event ? {
       title: event.title || '',
@@ -131,7 +159,7 @@ export function EventsSection() {
       nonMemberPrice: String(event.nonMemberPrice ?? 0),
       capacity: event.capacity == null ? '' : String(event.capacity),
       status: event.status || 'published',
-      createLinkedProject: false,
+      createLinkedProject: true,
     } : emptyEventForm)
     setManagementEvent(event || { _id: null, managers: [] })
 
@@ -155,8 +183,13 @@ export function EventsSection() {
           status: currentEvent.status || 'published',
           createLinkedProject: false,
         })
+        setLoadingVolunteerApplications(true)
+        const applicationsResponse = await eventService.getVolunteerApplications(event._id)
+        setVolunteerApplications(applicationsResponse.data.applications || [])
       } catch (err: any) {
         setManagementError(err.message || 'Unable to load event details.')
+      } finally {
+        setLoadingVolunteerApplications(false)
       }
     }
 
@@ -167,6 +200,26 @@ export function EventsSection() {
       } catch (err: any) {
         setManagementError(err.message || 'Unable to load members for event manager assignment.')
       }
+    }
+
+  }
+
+  useEffect(() => {
+    if (!managementEvent?._id) return
+
+    loadVolunteerApplications()
+  }, [managementEvent?._id])
+
+  const loadVolunteerApplications = async () => {
+    if (!managementEvent?._id) return
+    setLoadingVolunteerApplications(true)
+    try {
+      const response = await eventService.getVolunteerApplications(managementEvent._id)
+      setVolunteerApplications(response.data.applications || [])
+    } catch (err: any) {
+      setManagementError(err.message || 'Unable to load volunteer applications.')
+    } finally {
+      setLoadingVolunteerApplications(false)
     }
   }
 
@@ -233,6 +286,24 @@ export function EventsSection() {
       setAttendeeStats(response.data)
     } catch (err: any) {
       setManagementError(err.message || 'Unable to load event attendees.')
+    }
+  }
+
+  const handleVolunteerApplicationUpdate = async (application: any, status: 'approved' | 'rejected') => {
+    if (!managementEvent?._id) return
+    setManagementError('')
+    try {
+      const response = await eventService.updateVolunteerApplication(
+        managementEvent._id,
+        application.user?._id || application.user,
+        status,
+        application.responsibilities,
+      )
+      setVolunteerApplications((current) => current.map((item) => (
+        item._id === application._id ? response.data.application : item
+      )))
+    } catch (err: any) {
+      setManagementError(err.message || 'Unable to update volunteer application.')
     }
   }
 
@@ -333,8 +404,22 @@ export function EventsSection() {
                       {featured.capacity !== null
                         ? `${Math.max(0, featured.capacity - featured.ticketsSold)} spots left · `
                         : ''}
-                      {isMember ? (featured.memberPrice === 0 ? 'Free' : `$${featured.memberPrice}`) : (featured.nonMemberPrice === 0 ? 'Free' : `$${featured.nonMemberPrice}`)}
+                      {isMember
+                        ? `Member: ${featured.memberPrice === 0 ? 'Free' : `$${featured.memberPrice}`}`
+                        : `Member: ${featured.memberPrice === 0 ? 'Free' : `$${featured.memberPrice}`} · Non-member: ${featured.nonMemberPrice === 0 ? 'Free' : `$${featured.nonMemberPrice}`}`}
                     </span>
+                    {user && !isOfficer && volunteerStatuses[featured._id] !== 'approved' && (
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        disabled={Boolean(volunteerStatuses[featured._id]) || featured.status === 'completed'}
+                        onClick={(e) => { e.stopPropagation(); handleVolunteerApplication(featured) }}
+                      >
+                        {volunteerStatuses[featured._id] === 'pending' ? 'Application pending' : 'Apply to volunteer'}
+                      </Button>
+                    )}
+                    {volunteerStatuses[featured._id] === 'approved' && <span className="text-sm font-semibold text-white">Approved volunteer</span>}
                   </div>
                   {(isOfficer || canManageEvent(featured)) && (
                     <div className="flex gap-2 pt-2">
@@ -385,7 +470,9 @@ export function EventsSection() {
                             ) : (
                               'Open entry'
                             )}{' '}
-                            · {isMember ? (event.memberPrice === 0 ? 'Free' : `$${event.memberPrice}`) : (event.nonMemberPrice === 0 ? 'Free' : `$${event.nonMemberPrice}`)}
+                            · {isMember
+                              ? `Member: ${event.memberPrice === 0 ? 'Free' : `$${event.memberPrice}`}`
+                              : `Member: ${event.memberPrice === 0 ? 'Free' : `$${event.memberPrice}`} · Non-member: ${event.nonMemberPrice === 0 ? 'Free' : `$${event.nonMemberPrice}`}`}
                           </span>
                           <RsvpButton
                             small
@@ -395,6 +482,17 @@ export function EventsSection() {
                               setSelectedEvent(event)
                             }}
                           />
+                          {user && !isOfficer && volunteerStatuses[event._id] !== 'approved' && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              disabled={Boolean(volunteerStatuses[event._id]) || event.status === 'completed'}
+                              onClick={(e) => { e.stopPropagation(); handleVolunteerApplication(event) }}
+                            >
+                              {volunteerStatuses[event._id] === 'pending' ? 'Pending' : 'Volunteer'}
+                            </Button>
+                          )}
                         </div>
                         {(isOfficer || canManageEvent(event)) && (
                           <div className="flex gap-2 pt-2">
@@ -484,8 +582,8 @@ export function EventsSection() {
               </label>
               {!managementEvent._id && (
                 <label className="flex items-center gap-2 text-sm sm:col-span-2">
-                  <input type="checkbox" checked={eventForm.createLinkedProject} onChange={(e) => setEventForm({ ...eventForm, createLinkedProject: e.target.checked })} />
-                  Create a linked project board
+                  <input type="checkbox" checked disabled />
+                  A linked task board will be created automatically
                 </label>
               )}
               <div className="flex justify-end gap-2 sm:col-span-2">
@@ -516,7 +614,51 @@ export function EventsSection() {
                   </div>
                 )}
 
-                {(isOfficer || isVolunteer || isTreasurer || canManageEvent(managementEvent)) && (
+                {managementEvent._id && (
+                  <div className="border-t border-border pt-5">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <h3 className="font-bold">Volunteer applications</h3>
+                        <p className="text-xs text-muted-foreground">Review members who applied for this event.</p>
+                      </div>
+                      <Button type="button" variant="outline" size="sm" onClick={loadVolunteerApplications} disabled={loadingVolunteerApplications}>
+                        {loadingVolunteerApplications ? 'Loading...' : 'Refresh'}
+                      </Button>
+                    </div>
+                    {!loadingVolunteerApplications && (
+                      <p className="mt-2 text-xs font-semibold text-primary">
+                        {volunteerApplications.filter((application) => application.status === 'pending').length} pending application(s)
+                      </p>
+                    )}
+                    {!loadingVolunteerApplications && volunteerApplications.length === 0 ? (
+                      <p className="mt-2 text-sm text-muted-foreground">No volunteer applications for this event.</p>
+                    ) : !loadingVolunteerApplications && (
+                      <div className="mt-3 space-y-2">
+                        {volunteerApplications.map((application) => (
+                          <div key={application._id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border px-3 py-2">
+                            <div>
+                              <p className="text-sm font-semibold">{application.user?.name || 'Unknown member'}</p>
+                              <p className="text-xs text-muted-foreground">{application.user?.email} · {application.status}</p>
+                            </div>
+                            {application.status === 'pending' && (
+                              <div className="flex gap-2">
+                                <Button type="button" size="sm" onClick={() => handleVolunteerApplicationUpdate(application, 'approved')}>
+                                  Approve
+                                </Button>
+                                <Button type="button" size="sm" variant="outline" onClick={() => handleVolunteerApplicationUpdate(application, 'rejected')}>
+                                  Reject
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {managementError && <p className="mt-2 text-sm text-destructive">{managementError}</p>}
+                  </div>
+                )}
+
+                {(isOfficer || isTreasurer || canManageEvent(managementEvent)) && (
                   <div>
                     <div className="flex items-center justify-between gap-3">
                       <h3 className="font-bold">Attendees</h3>

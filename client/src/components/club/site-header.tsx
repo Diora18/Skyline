@@ -15,20 +15,28 @@ const baseNavLinks = [
 
 export function SiteHeader() {
   const [open, setOpen] = useState(false)
-  const { user, logout, canScan, canAccessTreasury, canSubmitExpenses, isOfficer } = useAuth()
+  const { user, logout, canScan, canAccessTreasury, canSubmitExpenses, canAccessProjects, isOfficer, isEventManager, approvedVolunteerEventIds } = useAuth()
 
   const navLinks = [
     ...baseNavLinks,
     ...(user ? [
-      { href: '/projects', label: 'Projects' },
+      ...(canAccessProjects ? [{ href: '/projects', label: 'Projects' }] : []),
       { href: '/tickets', label: 'My Tickets' },
       { href: '/orders', label: 'My Orders' },
     ] : []),
     ...(canSubmitExpenses ? [
       { href: '/expenses/submit', label: 'Submit Expense' },
+    ] : []),
+    ...(canSubmitExpenses || approvedVolunteerEventIds?.length > 0 ? [
       { href: '/expenses/my', label: 'My Claims' },
     ] : []),
-    ...(canScan ? [
+    ...(approvedVolunteerEventIds?.length > 0 ? [
+      { href: '/volunteer', label: 'Volunteer workspace' },
+    ] : []),
+    ...(isEventManager && !isOfficer ? [
+      { href: '/event-manager', label: 'Event manager workspace' },
+    ] : []),
+    ...(canScan && isOfficer ? [
       { href: '/admin/scanner', label: 'Scanner' },
     ] : []),
     ...(canAccessTreasury ? [

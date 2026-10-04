@@ -12,8 +12,10 @@ export default function ProtectedRoute({
   requireTreasury = false,
   requireExpenseSubmit = false,
   requireMember = false,
+  requireEventManager = false,
+  requireProjectAccess = false,
 }) {
-  const { user, token, authLoading, isMember, isOfficer, isExecutive, canScan, canAccessTreasury, canSubmitExpenses } = useContext(AuthContext);
+  const { user, token, authLoading, isMember, isOfficer, isExecutive, isEventManager, canAccessProjects, canScan, canAccessTreasury, canSubmitExpenses } = useContext(AuthContext);
   const location = useLocation();
 
   if (authLoading) {
@@ -70,6 +72,32 @@ export default function ProtectedRoute({
     );
   }
 
+  if (requireEventManager && !isEventManager) {
+    return (
+      <main className="flex flex-1 items-center justify-center px-6 py-24 min-h-[60vh]">
+        <div className="max-w-md text-center bg-card border border-border rounded-3xl p-8 shadow-sm">
+          <ShieldAlert className="mx-auto h-8 w-8 text-destructive" />
+          <h2 className="mt-4 text-2xl font-extrabold">Event Manager Access Required</h2>
+          <p className="mt-2 text-sm text-muted-foreground">You do not have any events assigned for management.</p>
+          <Button className="mt-6 rounded-full" onClick={() => window.history.back()}>Go Back</Button>
+        </div>
+      </main>
+    );
+  }
+
+  if (requireProjectAccess && !canAccessProjects) {
+    return (
+      <main className="flex flex-1 items-center justify-center px-6 py-24 min-h-[60vh]">
+        <div className="max-w-md text-center bg-card border border-border rounded-3xl p-8 shadow-sm">
+          <ShieldAlert className="mx-auto h-8 w-8 text-destructive" />
+          <h2 className="mt-4 text-2xl font-extrabold">Project Access Restricted</h2>
+          <p className="mt-2 text-sm text-muted-foreground">Projects are available only to officers and members connected to an event project.</p>
+          <Button className="mt-6 rounded-full" onClick={() => window.history.back()}>Go Back</Button>
+        </div>
+      </main>
+    );
+  }
+
   if (requireScanner && !canScan) {
     return (
       <main className="flex flex-1 items-center justify-center px-6 py-24 min-h-[60vh]">
@@ -89,7 +117,7 @@ export default function ProtectedRoute({
     );
   }
 
-  if (requireExpenseSubmit && !canSubmitExpenses) {
+  if (requireExpenseSubmit && !canSubmitExpenses && !isEventManager) {
     return (
       <main className="flex flex-1 items-center justify-center px-6 py-24 min-h-[60vh]">
         <div className="max-w-md text-center bg-card border border-border rounded-3xl p-8 shadow-sm">

@@ -33,6 +33,7 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(localStorage.getItem('token') || null);
   const [authLoading, setAuthLoading] = useState(Boolean(token));
   const [managedEventIds, setManagedEventIds] = useState([]);
+  const [approvedVolunteerEventIds, setApprovedVolunteerEventIds] = useState([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -78,6 +79,7 @@ export const AuthProvider = ({ children }) => {
     const loadManagedEvents = async () => {
       if (!token || !user?._id) {
         setManagedEventIds([]);
+        setApprovedVolunteerEventIds([]);
         return;
       }
 
@@ -95,6 +97,25 @@ export const AuthProvider = ({ children }) => {
         .map((event) => String(event._id));
 
       if (!cancelled) setManagedEventIds(assignedIds);
+
+      if (user.role !== 'officer' && user.role !== 'treasurer') {
+        const volunteerApplications = await Promise.all(
+          (result.data?.events || []).map(async (event) => {
+            const applicationResponse = await fetch(`/api/events/${event._id}/volunteers`, {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            if (!applicationResponse.ok) return null;
+            const applicationResult = await applicationResponse.json();
+            const application = applicationResult.data?.applications?.[0];
+            return application?.status === 'approved' ? String(event._id) : null;
+          }),
+        );
+        if (!cancelled) {
+          setApprovedVolunteerEventIds(volunteerApplications.filter(Boolean));
+        }
+      } else if (!cancelled) {
+        setApprovedVolunteerEventIds([]);
+      }
     };
 
     loadManagedEvents().catch((error) => {
@@ -152,16 +173,16 @@ export const AuthProvider = ({ children }) => {
 
   const isMember = user?.membershipStatus === 'active';
   const isStudent = user?.role === 'student';
-  const isVolunteer = user?.role === 'volunteer';
   const isTreasurer = user?.role === 'treasurer';
   const isOfficer = user?.role === 'officer';
   const isAdmin = isOfficer;
   const isExecutive = isTreasurer || isOfficer;
   const isEventManager = managedEventIds.length > 0;
-  const canScan = isVolunteer || isOfficer || isEventManager;
+  const canScan = isOfficer || isEventManager || approvedVolunteerEventIds.length > 0;
   const canAccessTreasury = isExecutive;
   const canManageMembers = isOfficer;
-  const canSubmitExpenses = isVolunteer || isExecutive;
+  const canSubmitExpenses = isExecutive || approvedVolunteerEventIds.length > 0;
+  const canAccessProjects = isOfficer || managedEventIds.length > 0 || approvedVolunteerEventIds.length > 0;
 
   return (
     <AuthContext.Provider value={{
@@ -174,15 +195,16 @@ export const AuthProvider = ({ children }) => {
       refreshUser,
       isMember,
       isStudent,
-      isVolunteer,
       isTreasurer,
       isOfficer,
+      approvedVolunteerEventIds,
       isAdmin,
       isExecutive,
       canScan,
       canAccessTreasury,
       canManageMembers,
       canSubmitExpenses,
+      canAccessProjects,
       managedEventIds,
       isEventManager,
     }}>

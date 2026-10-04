@@ -11,7 +11,7 @@ export default function Members() {
 
   // Role Promotion Modal
   const [selectedMember, setSelectedMember] = useState(null);
-  const [newRole, setNewRole] = useState('volunteer');
+  const [newRole, setNewRole] = useState('student');
   const [updating, setUpdating] = useState(false);
 
   const fetchMembers = async () => {
@@ -71,7 +71,7 @@ export default function Members() {
           <span className="text-xs font-bold uppercase tracking-widest text-primary">Executive Operations</span>
           <h1 className="text-3xl md:text-4xl font-extrabold mt-1">Student Member Directory</h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Manage club roster, promote volunteer/officer roles, and send automated renewal notices.
+            Manage club roster, assign event managers, and send automated renewal notices.
           </p>
         </div>
 
@@ -94,7 +94,6 @@ export default function Members() {
           >
             <option value="all">All Roles</option>
             <option value="student">Student</option>
-            <option value="volunteer">Volunteer</option>
             <option value="treasurer">Treasurer</option>
             <option value="officer">Officer</option>
           </select>
@@ -200,7 +199,6 @@ export default function Members() {
                 className="w-full rounded-2xl border border-input bg-background px-4 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 <option value="student">Student (General Member)</option>
-                <option value="volunteer">Volunteer (Team Member)</option>
                 <option value="treasurer">Treasurer (Financial Lead)</option>
                 <option value="officer">Officer (Full Administrator)</option>
               </select>

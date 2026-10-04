@@ -26,6 +26,26 @@ export const eventService = {
   manageManagers: async (id, action, userId) => {
     return await api.patch(`/events/${id}/managers`, { action, userId });
   },
+
+  applyToVolunteer: async (eventId, responsibilities = []) => {
+    return await api.post(`/events/${eventId}/volunteers`, { responsibilities });
+  },
+
+  getVolunteerApplications: async (eventId) => {
+    return await api.get(`/events/${eventId}/volunteers`);
+  },
+
+  getMyVolunteerAssignments: async () => {
+    return await api.get('/events/volunteers/my');
+  },
+
+  updateVolunteerApplication: async (eventId, userId, status, responsibilities) => {
+    return await api.patch(`/events/${eventId}/volunteers/${userId}`, { status, responsibilities });
+  },
+
+  withdrawVolunteerApplication: async (eventId) => {
+    return await api.delete(`/events/${eventId}/volunteers`);
+  },
 };
 
 export default eventService;
