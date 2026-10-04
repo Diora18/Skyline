@@ -1,11 +1,12 @@
 import { useState, useContext, useEffect } from 'react';
 import { AuthContext } from '@/context/AuthContext';
 import ticketService from '@/services/ticketService';
-import { Calendar, Clock, MapPin, Ticket, CheckCircle2, Loader2, AlertCircle, X, ShieldCheck, Users } from 'lucide-react';
+import { Calendar, Clock, MapPin, Ticket, CheckCircle2, Loader2, AlertCircle, X, ShieldCheck, Users, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import volunteerService from '@/services/volunteerService';
 import { AlumniSocialLinks } from './alumni-social-links';
+import { RazorpayModal } from '@/components/payment/RazorpayModal';
 
 export function EventDetailModal({ event, onClose, onTicketPurchased }: any) {
   const { user, token, isMember } = useContext(AuthContext);
@@ -61,9 +62,6 @@ export function EventDetailModal({ event, onClose, onTicketPurchased }: any) {
 
   const price = isMember ? event.memberPrice : event.nonMemberPrice;
   const isSoldOut = event.capacity !== null && event.ticketsSold >= event.capacity;
-  const canApplyToVolunteer = event.status === 'published' && startDate.getTime() > currentTime;
-  const isAlumniEvent = /alumni/i.test(event.title || '');
-
   const handlePurchase = async () => {
     if (!token || !user) {
       navigate('/login');
@@ -82,6 +80,23 @@ export function EventDetailModal({ event, onClose, onTicketPurchased }: any) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleInitiatePurchase = () => {
+    if (!token || !user) {
+      navigate('/login');
+      return;
+    }
+    if (price > 0) {
+      setShowRazorpay(true);
+    } else {
+      handlePurchase();
+    }
+  };
+
+  const handleRazorpaySuccess = async () => {
+    setShowRazorpay(false);
+    await handlePurchase();
   };
 
   const handleVolunteerApplication = async () => {
@@ -297,7 +312,7 @@ export function EventDetailModal({ event, onClose, onTicketPurchased }: any) {
 
             <div className="pt-2 flex items-center gap-3">
               <Button
-                onClick={handlePurchase}
+                onClick={handleInitiatePurchase}
                 disabled={loading || isSoldOut}
                 className="flex-1 rounded-full h-11 text-base font-semibold"
               >
@@ -312,12 +327,25 @@ export function EventDetailModal({ event, onClose, onTicketPurchased }: any) {
                   'Sign In to RSVP'
                 ) : (
                   <>
-                    <Ticket className="h-4 w-4 mr-2" />
-                    {price === 0 ? 'Claim Free Ticket' : `Purchase Ticket ($${price})`}
+                    {price > 0 ? <CreditCard className="h-4 w-4 mr-2" /> : <Ticket className="h-4 w-4 mr-2" />}
+                    {price === 0 ? 'Claim Free Ticket' : `Pay $${price} via Razorpay`}
                   </>
                 )}
               </Button>
             </div>
+
+            {/* Razorpay Checkout Modal */}
+            <RazorpayModal
+              isOpen={showRazorpay}
+              onClose={() => setShowRazorpay(false)}
+              onSuccess={handleRazorpaySuccess}
+              amount={price}
+              currency="USD"
+              title={`Ticket: ${event.title}`}
+              description={`Single Entry Ticket for ${event.title}`}
+              customerName={user?.name || 'Student Member'}
+              customerEmail={user?.email || 'member@skyline.edu'}
+            />
           </div>
         )}
       </div>
